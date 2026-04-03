@@ -2,6 +2,21 @@ import { execFile } from 'child_process'
 import { join } from 'path'
 import { mkdir, rm } from 'fs/promises'
 
+function git(args: string[], cwd: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    execFile('git', args, { cwd }, (err, stdout) => {
+      if (err) reject(err)
+      else resolve(stdout.trim())
+    })
+  })
+}
+
+function getDefaultBranch(cwd: string): Promise<string> {
+  return git(['symbolic-ref', 'refs/remotes/origin/HEAD'], cwd)
+    .then((ref) => ref.replace('refs/remotes/origin/', ''))
+    .catch(() => 'main')
+}
+
 export interface WorktreeInfo {
   path: string
   branch: string
@@ -47,10 +62,15 @@ export function listWorktrees(cwd: string): Promise<WorktreeInfo[]> {
 export async function createWorktree(
   cwd: string,
   branch: string,
-  newBranch: boolean
+  newBranch: boolean,
+  updateFromOrigin: boolean = false
 ): Promise<WorktreeInfo> {
   const worktreeDir = join(cwd, '.konductor', 'worktrees')
   const worktreePath = join(worktreeDir, branch)
+
+  if (updateFromOrigin) {
+    await git(['fetch', 'origin'], cwd)
+  }
 
   const args = newBranch
     ? ['worktree', 'add', '-b', branch, worktreePath]
@@ -58,15 +78,14 @@ export async function createWorktree(
 
   await mkdir(worktreeDir, { recursive: true })
 
-  return new Promise((resolve, reject) => {
-    execFile('git', args, { cwd }, (err) => {
-      if (err) {
-        reject(err)
-        return
-      }
-      resolve({ path: worktreePath, branch, isMain: false })
-    })
-  })
+  await git(args, cwd)
+
+  if (updateFromOrigin && newBranch) {
+    const defaultBranch = await getDefaultBranch(cwd)
+    await git(['reset', '--hard', `origin/${defaultBranch}`], worktreePath)
+  }
+
+  return { path: worktreePath, branch, isMain: false }
 }
 
 export async function removeWorktree(repoRoot: string, worktreePath: string): Promise<void> {

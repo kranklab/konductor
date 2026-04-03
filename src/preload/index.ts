@@ -24,7 +24,7 @@ export interface KonductorAPI {
   getDiff: (cwd: string, filePath: string, isUntracked: boolean) => Promise<string>
   selectDirectory: () => Promise<string | null>
   listWorktrees: (cwd: string) => Promise<WorktreeInfo[]>
-  createWorktree: (cwd: string, branch: string, newBranch: boolean) => Promise<WorktreeInfo>
+  createWorktree: (cwd: string, branch: string, newBranch: boolean, updateFromOrigin?: boolean) => Promise<WorktreeInfo>
   removeWorktree: (repoRoot: string, worktreePath: string) => Promise<void>
   listBranches: (cwd: string) => Promise<string[]>
   getBranchDetails: (cwd: string) => Promise<BranchDetail[]>
@@ -94,8 +94,8 @@ const api: KonductorAPI = {
   selectDirectory: () => ipcRenderer.invoke('select-directory'),
 
   listWorktrees: (cwd: string) => ipcRenderer.invoke('list-worktrees', cwd),
-  createWorktree: (cwd: string, branch: string, newBranch: boolean) =>
-    ipcRenderer.invoke('create-worktree', cwd, branch, newBranch),
+  createWorktree: (cwd: string, branch: string, newBranch: boolean, updateFromOrigin?: boolean) =>
+    ipcRenderer.invoke('create-worktree', cwd, branch, newBranch, updateFromOrigin ?? false),
   removeWorktree: (repoRoot: string, worktreePath: string) =>
     ipcRenderer.invoke('remove-worktree', repoRoot, worktreePath),
   listBranches: (cwd: string) => ipcRenderer.invoke('list-branches', cwd),
