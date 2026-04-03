@@ -4,21 +4,18 @@ Claude Code Session Manager — manage multiple Claude Code terminal sessions fr
 
 ## Install
 
-Download the latest build from the [`latest` release](../../releases/tag/latest), or use curl:
+One-line install — downloads the AppImage, installs it to `~/.local/bin`, and adds a desktop entry:
 
-### Linux (AppImage)
+```bash
+curl -fSL https://raw.githubusercontent.com/kranklab/konductor/main/install.sh | bash
+```
+
+Or manually download from the [`latest` release](../../releases/tag/latest):
 
 ```bash
 curl -fSL "https://github.com/kranklab/konductor/releases/download/latest/konductor.AppImage" -o konductor.AppImage
 chmod +x konductor.AppImage
 ./konductor.AppImage
-```
-
-### Linux (deb)
-
-```bash
-curl -fSL "https://github.com/kranklab/konductor/releases/download/latest/konductor.deb" -o konductor.deb
-sudo dpkg -i konductor.deb
 ```
 
 ## Development
