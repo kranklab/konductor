@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import type { Project, Session, ViewMode } from '../types'
 import logoSvg from '../assets/logo.svg'
 
@@ -29,6 +30,36 @@ export default function Sidebar({
   onNewSession,
   onRemoveProject
 }: SidebarProps): React.JSX.Element {
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
+    const initial = new Set<string>()
+    if (activeProjectId) initial.add(activeProjectId)
+    return initial
+  })
+
+  // Auto-expand when active project changes (e.g. new project created)
+  useEffect(() => {
+    if (activeProjectId) {
+      setExpandedIds((prev) => {
+        if (prev.has(activeProjectId)) return prev
+        const next = new Set(prev)
+        next.add(activeProjectId)
+        return next
+      })
+    }
+  }, [activeProjectId])
+
+  const toggleExpanded = (id: string): void => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
+  }
+
   return (
     <div className="w-52 shrink-0 bg-surface-overlay border-r border-surface-border flex flex-col">
       {/* Header */}
@@ -91,18 +122,31 @@ export default function Sidebar({
         {projects.map((project) => {
           const projectSessions = allSessions.filter((s) => s.projectId === project.id)
           const isActive = project.id === activeProjectId
+          const isExpanded = expandedIds.has(project.id)
 
           return (
             <div key={project.id} className="mb-1">
               {/* Project header */}
               <button
-                onClick={() => onSelectProject(project.id)}
+                onClick={() => {
+                  onSelectProject(project.id)
+                  toggleExpanded(project.id)
+                }}
                 className={`w-full flex items-center gap-2 px-3 py-1.5 text-left group transition-colors ${
                   isActive
                     ? 'bg-accent/10 text-white'
                     : 'text-gray-400 hover:text-gray-200 hover:bg-surface-raised'
                 }`}
               >
+                <svg
+                  width="8"
+                  height="8"
+                  viewBox="0 0 8 8"
+                  fill="currentColor"
+                  className={`shrink-0 transition-transform ${isExpanded ? 'rotate-90' : ''} ${isActive ? 'text-accent' : 'text-gray-500'}`}
+                >
+                  <path d="M2 1l4 3-4 3V1z" />
+                </svg>
                 <svg
                   width="12"
                   height="12"
@@ -129,7 +173,7 @@ export default function Sidebar({
               </button>
 
               {/* Sessions within project */}
-              {isActive && (
+              {isExpanded && (
                 <div className="ml-4 border-l border-surface-border">
                   {projectSessions.map((session) => {
                     const isWorktree = session.cwd !== project.cwd
