@@ -361,6 +361,9 @@ function ShortcutHelp(): React.JSX.Element {
               </span>
             </div>
           </div>
+          <div className="border-t border-surface-border mt-2 pt-2 text-[9px] text-gray-600 text-center">
+            v{__APP_VERSION__}
+          </div>
         </div>
       )}
     </div>
