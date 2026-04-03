@@ -1,0 +1,34 @@
+<svg width="160" height="160" viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="round-k" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur"/>
+      <feColorMatrix in="blur" type="matrix"
+        values="0 0 0 0 0.22
+                0 0 0 0 0.74
+                0 0 0 0 0.97
+                0 0 0 28 -12" result="rounded"/>
+    </filter>
+    <linearGradient id="swish1" x1="100" y1="98" x2="130" y2="70" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.55"/>
+    </linearGradient>
+    <linearGradient id="swish2" x1="104" y1="92" x2="130" y2="70" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.3"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="160" height="160" rx="24" fill="#0f172a"/>
+
+  <text x="80" y="80" text-anchor="middle" dominant-baseline="central"
+    font-family="'Arial Black', Impact, sans-serif" font-weight="900"
+    font-size="120" fill="#38bdf8" filter="url(#round-k)">K</text>
+
+  <!-- Swish trails -->
+  <path d="M 100,98 Q 118,92 130,70" stroke="url(#swish1)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  <path d="M 104,92 Q 120,86 130,70" stroke="url(#swish2)" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+
+  <!-- Baton -->
+  <line x1="100" y1="80" x2="130" y2="70" stroke="#38bdf8" stroke-width="3.5" stroke-linecap="round" opacity="0.7"/>
+  <circle cx="130" cy="70" r="4" fill="#38bdf8" opacity="0.9"/>
+</svg>
