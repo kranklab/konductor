@@ -311,9 +311,9 @@ export function useSessions() {
     })
   }, [])
 
-  const createSession = useCallback(async (projectId: string, cwd: string) => {
+  const createSession = useCallback(async (projectId: string, cwd: string, branch?: string) => {
     const sessionCount = sessionsRef.current.filter((s) => s.projectId === projectId).length
-    const title = `Session ${sessionCount + 1}`
+    const title = branch ? `${branch}` : `Session ${sessionCount + 1}`
 
     const { id, claudeSessionId } = await api.createSession(cwd, { name: title })
 

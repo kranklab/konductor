@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 import type { ChangedFile } from '../main/fileWatcher'
 import type { SessionInfo } from '../main/sessionManager'
 import type { PersistedState } from '../main/store'
+import type { WorktreeInfo } from '../main/worktree'
 
 export interface KonductorAPI {
   loadState: () => Promise<PersistedState>
@@ -22,6 +23,10 @@ export interface KonductorAPI {
   readFile: (path: string) => Promise<string>
   getDiff: (cwd: string, filePath: string, isUntracked: boolean) => Promise<string>
   selectDirectory: () => Promise<string | null>
+  listWorktrees: (cwd: string) => Promise<WorktreeInfo[]>
+  createWorktree: (cwd: string, branch: string, newBranch: boolean) => Promise<WorktreeInfo>
+  removeWorktree: (repoRoot: string, worktreePath: string) => Promise<void>
+  listBranches: (cwd: string) => Promise<string[]>
 }
 
 const api: KonductorAPI = {
@@ -82,7 +87,14 @@ const api: KonductorAPI = {
   getDiff: (cwd: string, filePath: string, isUntracked: boolean) =>
     ipcRenderer.invoke('get-diff', cwd, filePath, isUntracked),
 
-  selectDirectory: () => ipcRenderer.invoke('select-directory')
+  selectDirectory: () => ipcRenderer.invoke('select-directory'),
+
+  listWorktrees: (cwd: string) => ipcRenderer.invoke('list-worktrees', cwd),
+  createWorktree: (cwd: string, branch: string, newBranch: boolean) =>
+    ipcRenderer.invoke('create-worktree', cwd, branch, newBranch),
+  removeWorktree: (repoRoot: string, worktreePath: string) =>
+    ipcRenderer.invoke('remove-worktree', repoRoot, worktreePath),
+  listBranches: (cwd: string) => ipcRenderer.invoke('list-branches', cwd)
 }
 
 if (process.contextIsolated) {

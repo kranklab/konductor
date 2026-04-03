@@ -131,24 +131,49 @@ export default function Sidebar({
               {/* Sessions within project */}
               {isActive && (
                 <div className="ml-4 border-l border-surface-border">
-                  {projectSessions.map((session) => (
-                    <button
-                      key={session.id}
-                      onClick={() => onSelectSession(session.id)}
-                      className={`w-full flex items-center gap-2 pl-3 pr-3 py-1 text-left transition-colors ${
-                        session.id === activeSessionId
-                          ? 'text-white bg-accent/10'
-                          : 'text-gray-500 hover:text-gray-300 hover:bg-surface-raised'
-                      }`}
-                    >
-                      <div
-                        className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                          session.alive ? 'bg-green-400' : 'bg-red-400'
+                  {projectSessions.map((session) => {
+                    const isWorktree = session.cwd !== project.cwd
+                    return (
+                      <button
+                        key={session.id}
+                        onClick={() => onSelectSession(session.id)}
+                        className={`w-full flex items-start gap-2 pl-3 pr-3 py-1 text-left transition-colors ${
+                          session.id === activeSessionId
+                            ? 'text-white bg-accent/10'
+                            : 'text-gray-500 hover:text-gray-300 hover:bg-surface-raised'
                         }`}
-                      />
-                      <span className="text-xs truncate">{session.title}</span>
-                    </button>
-                  ))}
+                      >
+                        <div
+                          className={`w-1.5 h-1.5 rounded-full shrink-0 mt-1 ${
+                            session.alive ? 'bg-green-400' : 'bg-red-400'
+                          }`}
+                        />
+                        {isWorktree && (
+                          <svg
+                            width="10"
+                            height="10"
+                            viewBox="0 0 16 16"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            className="shrink-0 mt-0.5 text-gray-500"
+                          >
+                            <path d="M5 3v6.5a2.5 2.5 0 005 0V8" />
+                            <circle cx="5" cy="2" r="1.5" />
+                            <circle cx="10" cy="7" r="1.5" />
+                          </svg>
+                        )}
+                        <div className="min-w-0">
+                          <span className="text-xs truncate block">{session.title}</span>
+                          {isWorktree && (
+                            <span className="text-[9px] text-gray-600 truncate block">
+                              {session.cwd.split('/').slice(-3).join('/')}
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    )
+                  })}
 
                   {/* Add session within project */}
                   <button

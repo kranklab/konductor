@@ -1,11 +1,12 @@
-import { useState, useCallback, useEffect } from 'react'
-import type { ViewMode } from './types'
+import { useState, useCallback, useEffect, useRef } from 'react'
+import type { ViewMode, Session } from './types'
 import { useSessions } from './hooks/useSessions'
 import { useFileChanges } from './hooks/useFileChanges'
 import Sidebar from './components/Sidebar'
 import GridView from './components/GridView'
 import FocusView from './components/FocusView'
 import ChangesView from './components/ChangesView'
+import WorktreeModal from './components/WorktreeModal'
 
 const savedViewMode = import.meta.hot?.data?.viewMode as ViewMode | undefined
 
@@ -35,6 +36,16 @@ function App(): React.JSX.Element {
     resizeSession
   } = useSessions()
 
+  // Worktree modal state: stores projectId when modal is open
+  const [worktreeProjectId, setWorktreeProjectId] = useState<string | null>(null)
+  const worktreeProject = worktreeProjectId
+    ? projects.find((p) => p.id === worktreeProjectId) ?? null
+    : null
+
+  // Close-worktree confirmation state
+  const [closingSession, setClosingSession] = useState<Session | null>(null)
+  const closingProjectCwd = useRef<string | null>(null)
+
   const changes = useFileChanges(activeSessionId)
 
   // Fall back to grid when active session disappears (e.g. shell exited)
@@ -44,26 +55,27 @@ function App(): React.JSX.Element {
   const handleNewProject = useCallback(async () => {
     const project = await createProject()
     if (project) {
-      // Automatically create first session in new project
-      await createSession(project.id, project.cwd)
-      setViewMode('focus')
+      setWorktreeProjectId(project.id)
     }
-  }, [createProject, createSession])
+  }, [createProject])
 
-  const handleNewSession = useCallback(async () => {
+  const handleNewSession = useCallback(() => {
     if (!activeProject) return
-    await createSession(activeProject.id, activeProject.cwd)
-    setViewMode('focus')
-  }, [activeProject, createSession])
+    setWorktreeProjectId(activeProject.id)
+  }, [activeProject])
 
-  const handleNewSessionInProject = useCallback(
-    async (projectId: string) => {
-      const project = projects.find((p) => p.id === projectId)
-      if (!project) return
-      await createSession(projectId, project.cwd)
+  const handleNewSessionInProject = useCallback((projectId: string) => {
+    setWorktreeProjectId(projectId)
+  }, [])
+
+  const handleWorktreeSelect = useCallback(
+    async (cwd: string, branch: string) => {
+      if (!worktreeProjectId) return
+      setWorktreeProjectId(null)
+      await createSession(worktreeProjectId, cwd, branch)
       setViewMode('focus')
     },
-    [createSession, projects]
+    [worktreeProjectId, createSession]
   )
 
   const handleFocusSession = useCallback(
@@ -74,7 +86,7 @@ function App(): React.JSX.Element {
     [setActiveSessionId]
   )
 
-  const handleCloseSession = useCallback(
+  const doCloseSession = useCallback(
     (id: string) => {
       killSession(id)
       if (sessions.length <= 1) {
@@ -82,6 +94,47 @@ function App(): React.JSX.Element {
       }
     },
     [killSession, sessions.length]
+  )
+
+  const handleCloseSession = useCallback(
+    (id: string) => {
+      const session = allSessions.find((s) => s.id === id)
+      if (!session) return
+
+      const project = projects.find((p) => p.id === session.projectId)
+      if (project && session.cwd !== project.cwd) {
+        // Worktree session — ask the user
+        closingProjectCwd.current = project.cwd
+        setClosingSession(session)
+        return
+      }
+
+      doCloseSession(id)
+    },
+    [allSessions, projects, doCloseSession]
+  )
+
+  const handleConfirmClose = useCallback(
+    async (deleteWorktree: boolean) => {
+      if (!closingSession) return
+      const sessionId = closingSession.id
+      const sessionCwd = closingSession.cwd
+      const repoRoot = closingProjectCwd.current
+
+      setClosingSession(null)
+      closingProjectCwd.current = null
+
+      doCloseSession(sessionId)
+
+      if (deleteWorktree && repoRoot) {
+        try {
+          await window.konductorAPI.removeWorktree(repoRoot, sessionCwd)
+        } catch (e) {
+          console.error('Failed to remove worktree:', e)
+        }
+      }
+    },
+    [closingSession, doCloseSession]
   )
 
   const handleResizeSession = useCallback(
@@ -147,6 +200,50 @@ function App(): React.JSX.Element {
           />
         )}
       </main>
+
+      {worktreeProject && (
+        <WorktreeModal
+          projectCwd={worktreeProject.cwd}
+          onSelect={handleWorktreeSelect}
+          onCancel={() => setWorktreeProjectId(null)}
+        />
+      )}
+
+      {closingSession && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="bg-surface-overlay border border-surface-border rounded-lg w-[360px] shadow-2xl">
+            <div className="px-4 py-3 border-b border-surface-border">
+              <h2 className="text-sm font-semibold text-gray-200">Close Worktree Session</h2>
+            </div>
+            <div className="px-4 py-4">
+              <p className="text-xs text-gray-400 mb-1">
+                <span className="text-gray-200">{closingSession.title}</span>
+              </p>
+              <p className="text-[10px] text-gray-600 mb-4 truncate">{closingSession.cwd}</p>
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={() => handleConfirmClose(false)}
+                  className="w-full py-2 rounded bg-surface-raised border border-surface-border text-gray-300 hover:text-white hover:border-gray-500 text-xs font-medium transition-colors"
+                >
+                  Close Session
+                </button>
+                <button
+                  onClick={() => handleConfirmClose(true)}
+                  className="w-full py-2 rounded bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 hover:text-red-300 text-xs font-medium transition-colors"
+                >
+                  Close & Delete Worktree
+                </button>
+                <button
+                  onClick={() => setClosingSession(null)}
+                  className="w-full py-1.5 text-xs text-gray-600 hover:text-gray-400 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

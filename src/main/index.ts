@@ -15,6 +15,7 @@ import {
   getSessionChanges
 } from './sessionManager'
 import { loadState, saveState, type PersistedState } from './store'
+import { listWorktrees, createWorktree, removeWorktree, listBranches } from './worktree'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -127,6 +128,25 @@ app.whenReady().then(() => {
         })
       }
     })
+  })
+
+  ipcMain.handle('list-worktrees', (_event, cwd: string) => {
+    return listWorktrees(cwd)
+  })
+
+  ipcMain.handle(
+    'create-worktree',
+    (_event, cwd: string, branch: string, newBranch: boolean) => {
+      return createWorktree(cwd, branch, newBranch)
+    }
+  )
+
+  ipcMain.handle('list-branches', (_event, cwd: string) => {
+    return listBranches(cwd)
+  })
+
+  ipcMain.handle('remove-worktree', (_event, repoRoot: string, worktreePath: string) => {
+    return removeWorktree(repoRoot, worktreePath)
   })
 
   ipcMain.handle('select-directory', async () => {

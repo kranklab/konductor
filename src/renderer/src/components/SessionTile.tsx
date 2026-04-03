@@ -93,6 +93,7 @@ export default function SessionTile({
             }`}
           />
           <span className="text-xs text-gray-400 truncate">{session.title}</span>
+          <span className="text-[10px] text-gray-600 truncate">{session.cwd}</span>
         </div>
         <button
           onClick={(e) => {
