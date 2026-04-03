@@ -7,6 +7,7 @@ import GridView from './components/GridView'
 import FocusView from './components/FocusView'
 import ChangesView from './components/ChangesView'
 import WorktreeModal from './components/WorktreeModal'
+import BranchesView from './components/BranchesView'
 
 const savedViewMode = import.meta.hot?.data?.viewMode as ViewMode | undefined
 
@@ -51,6 +52,10 @@ function App(): React.JSX.Element {
   // Fall back to grid when active session disappears (e.g. shell exited)
   const effectiveViewMode =
     (viewMode === 'focus' || viewMode === 'changes') && !activeSession ? 'grid' : viewMode
+
+  const handleShowBranches = useCallback(() => {
+    setViewMode('branches')
+  }, [])
 
   const handleNewProject = useCallback(async () => {
     const project = await createProject()
@@ -165,6 +170,7 @@ function App(): React.JSX.Element {
         onNewProject={handleNewProject}
         onNewSession={handleNewSessionInProject}
         onRemoveProject={removeProject}
+        onShowBranches={handleShowBranches}
       />
 
       <main className="flex-1 min-w-0">
@@ -199,6 +205,10 @@ function App(): React.JSX.Element {
             onBack={() => setViewMode('focus')}
             onResize={(cols, rows) => handleResizeSession(activeSession.id, cols, rows)}
           />
+        )}
+
+        {effectiveViewMode === 'branches' && activeProject && (
+          <BranchesView project={activeProject} onBack={() => setViewMode('grid')} />
         )}
       </main>
 

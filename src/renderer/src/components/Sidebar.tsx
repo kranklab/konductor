@@ -15,6 +15,7 @@ interface SidebarProps {
   onNewProject: () => void
   onNewSession: (projectId: string) => void
   onRemoveProject: (id: string) => void
+  onShowBranches: () => void
 }
 
 export default function Sidebar({
@@ -28,7 +29,8 @@ export default function Sidebar({
   onSetView,
   onNewProject,
   onNewSession,
-  onRemoveProject
+  onRemoveProject,
+  onShowBranches
 }: SidebarProps): React.JSX.Element {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
     const initial = new Set<string>()
@@ -220,12 +222,36 @@ export default function Sidebar({
                   })}
 
                   {/* Add session within project */}
-                  <button
-                    onClick={() => onNewSession(project.id)}
-                    className="w-full flex items-center gap-2 pl-3 pr-3 py-1 text-left text-gray-600 hover:text-accent transition-colors"
-                  >
-                    <span className="text-xs">+ session</span>
-                  </button>
+                  <div className="flex items-center">
+                    <button
+                      onClick={() => onNewSession(project.id)}
+                      className="flex-1 flex items-center gap-2 pl-3 pr-3 py-1 text-left text-gray-600 hover:text-accent transition-colors"
+                    >
+                      <span className="text-xs">+ session</span>
+                    </button>
+                    <button
+                      onClick={onShowBranches}
+                      className={`mr-2 w-5 h-5 rounded flex items-center justify-center transition-colors ${
+                        viewMode === 'branches'
+                          ? 'bg-accent/20 text-accent'
+                          : 'text-gray-600 hover:text-gray-300 hover:bg-surface-raised'
+                      }`}
+                      title="Branches & Worktrees"
+                    >
+                      <svg
+                        width="11"
+                        height="11"
+                        viewBox="0 0 16 16"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                      >
+                        <path d="M5 3v6.5a2.5 2.5 0 005 0V8" />
+                        <circle cx="5" cy="2" r="1.5" />
+                        <circle cx="10" cy="7" r="1.5" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
