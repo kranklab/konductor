@@ -79,9 +79,11 @@ function App(): React.JSX.Element {
       if (!worktreeProjectId) return
       setWorktreeProjectId(null)
       await createSession(worktreeProjectId, cwd, branch)
-      setViewMode('focus')
+      if (viewMode !== 'grid') {
+        setViewMode('focus')
+      }
     },
-    [worktreeProjectId, createSession]
+    [worktreeProjectId, createSession, viewMode]
   )
 
   const handleFocusSession = useCallback(
