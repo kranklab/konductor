@@ -44,5 +44,6 @@ deb:
   artifactName: ${name}.${ext}
 npmRebuild: true
 publish:
-  provider: generic
-  url: https://example.com/auto-updates
+  provider: github
+  owner: kranklab
+  repo: konductor
