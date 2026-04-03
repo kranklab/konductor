@@ -1,4 +1,8 @@
 import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
+
+if (process.platform === 'linux') {
+  app.commandLine.appendSwitch('no-sandbox')
+}
 import { execFile } from 'child_process'
 import { join } from 'path'
 import { readFile } from 'fs/promises'
