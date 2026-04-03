@@ -114,6 +114,6 @@ if (process.contextIsolated) {
     console.error(error)
   }
 } else {
-  // @ts-ignore
+  // @ts-ignore -- fallback for non-context-isolated environments
   window.konductorAPI = api
 }

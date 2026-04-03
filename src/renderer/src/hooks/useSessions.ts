@@ -403,5 +403,11 @@ export function useSessions() {
 // ─── HMR dispose indirection ──────────────────────────────────────────
 // Refs used by the dispose callback so it always reads current state
 // without needing to re-register the callback on every render.
-const refs = { current: null as null | Record<string, () => unknown> }
+interface HmrRefs {
+  projects: () => Project[]
+  activeProjectId: () => string | null
+  activeSessionId: () => string | null
+  sessions: () => Session[]
+}
+const refs = { current: null as null | HmrRefs }
 const disposeRegistered = { current: false }

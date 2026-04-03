@@ -1,14 +1,15 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import type { ChangedFile } from '../types'
 
 const api = window.konductorAPI
 
-export function useFileChanges(sessionId: string | null) {
+export function useFileChanges(sessionId: string | null): ChangedFile[] {
   const [changes, setChanges] = useState<ChangedFile[]>([])
+
+  const emptyChanges = useMemo(() => [] as ChangedFile[], [])
 
   useEffect(() => {
     if (!sessionId) {
-      setChanges([])
       return
     }
 
@@ -25,5 +26,5 @@ export function useFileChanges(sessionId: string | null) {
     return unsub
   }, [sessionId])
 
-  return changes
+  return sessionId ? changes : emptyChanges
 }
