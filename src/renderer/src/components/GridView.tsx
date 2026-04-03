@@ -6,6 +6,7 @@ interface GridViewProps {
   project: Project | null
   sessions: Session[]
   activeSessionId: string | null
+  onSelectSession: (id: string) => void
   onFocusSession: (id: string) => void
   onCloseSession: (id: string) => void
   onResizeSession: (id: string, cols: number, rows: number) => void
@@ -17,6 +18,7 @@ export default function GridView({
   project,
   sessions,
   activeSessionId,
+  onSelectSession,
   onFocusSession,
   onCloseSession,
   onResizeSession,
@@ -54,6 +56,7 @@ export default function GridView({
             key={session.id}
             session={session}
             isActive={session.id === activeSessionId}
+            onSelect={() => onSelectSession(session.id)}
             onFocus={() => onFocusSession(session.id)}
             onClose={() => onCloseSession(session.id)}
             onResize={(cols, rows) => onResizeSession(session.id, cols, rows)}
