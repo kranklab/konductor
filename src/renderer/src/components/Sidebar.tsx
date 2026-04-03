@@ -113,9 +113,7 @@ export default function Sidebar({
                   <path d="M1 3.5A1.5 1.5 0 012.5 2h3.879a1.5 1.5 0 011.06.44l1.122 1.12A1.5 1.5 0 009.62 4H13.5A1.5 1.5 0 0115 5.5v7a1.5 1.5 0 01-1.5 1.5h-11A1.5 1.5 0 011 12.5v-9z" />
                 </svg>
                 <span className="text-xs font-medium truncate flex-1">{project.name}</span>
-                <span className="text-[10px] text-gray-600 shrink-0">
-                  {projectSessions.length}
-                </span>
+                <span className="text-[10px] text-gray-600 shrink-0">{projectSessions.length}</span>
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
