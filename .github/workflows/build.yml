@@ -61,8 +61,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Set build version
+        run: echo "BUILD_VERSION=0.1.0-build.${{ github.run_number }}" >> "$GITHUB_ENV"
+
       - name: Build
-        run: npm run ${{ matrix.build_cmd }}
+        run: npm run ${{ matrix.build_cmd }} -- --config.extraMetadata.version=${{ env.BUILD_VERSION }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -72,6 +75,7 @@ jobs:
             dist/*.AppImage
             dist/*.deb
             dist/*.snap
+            dist/*.yml
 
   release:
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
@@ -92,10 +96,11 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
-          name: Latest Build
+          name: Latest Build (0.1.0-build.${{ github.run_number }})
           body: |
             Rolling release — automatically updated on each push to `main`.
 
+            **Version:** `0.1.0-build.${{ github.run_number }}`
             **Last updated:** ${{ github.event.head_commit.timestamp }}
             **Commit:** ${{ github.sha }}
           prerelease: true
