@@ -23,6 +23,7 @@ interface SidebarProps {
   onNewProject: () => void
   onNewSession: (projectId: string) => void
   onRemoveProject: (id: string) => void
+  onShowBranches: () => void
 }
 
 export default function Sidebar({
@@ -36,7 +37,8 @@ export default function Sidebar({
   onSetView,
   onNewProject,
   onNewSession,
-  onRemoveProject
+  onRemoveProject,
+  onShowBranches
 }: SidebarProps): React.JSX.Element {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
     const initial = new Set<string>()
@@ -180,9 +182,19 @@ export default function Sidebar({
                 </button>
               </button>
 
-              {/* Sessions within project */}
+              {/* Expanded project contents */}
               {isExpanded && (
                 <div className="ml-4 border-l border-surface-border">
+                  {/* Sessions section */}
+                  <div className="flex items-center pl-3 pr-3 pt-2 pb-1">
+                    <span className="text-[10px] uppercase tracking-wider text-gray-600 flex-1">
+                      Sessions
+                    </span>
+                    <span className="text-[10px] text-gray-600">
+                      {projectSessions.length}
+                    </span>
+                  </div>
+
                   {projectSessions.map((session) => {
                     const isWorktree = session.cwd !== project.cwd
                     return (
@@ -227,12 +239,38 @@ export default function Sidebar({
                     )
                   })}
 
-                  {/* Add session within project */}
                   <button
                     onClick={() => onNewSession(project.id)}
                     className="w-full flex items-center gap-2 pl-3 pr-3 py-1 text-left text-gray-600 hover:text-accent transition-colors"
                   >
                     <span className="text-xs">+ session</span>
+                  </button>
+
+                  {/* Branches & Worktrees section */}
+                  <button
+                    onClick={onShowBranches}
+                    className={`w-full flex items-center gap-2 pl-3 pr-3 pt-2 pb-1.5 text-left transition-colors ${
+                      viewMode === 'branches'
+                        ? 'text-accent'
+                        : 'text-gray-600 hover:text-gray-300'
+                    }`}
+                  >
+                    <svg
+                      width="10"
+                      height="10"
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      className="shrink-0"
+                    >
+                      <path d="M5 3v6.5a2.5 2.5 0 005 0V8" />
+                      <circle cx="5" cy="2" r="1.5" />
+                      <circle cx="10" cy="7" r="1.5" />
+                    </svg>
+                    <span className="text-[10px] uppercase tracking-wider flex-1">
+                      Branches
+                    </span>
                   </button>
                 </div>
               )}

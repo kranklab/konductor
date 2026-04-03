@@ -100,3 +100,109 @@ export function listBranches(cwd: string): Promise<string[]> {
     )
   })
 }
+
+export interface BranchDetail {
+  name: string
+  isHead: boolean
+  upstream: string
+  gone: boolean
+  lastCommitDate: string
+  lastCommitRelative: string
+  lastCommitSubject: string
+  worktreePath: string
+}
+
+export function getBranchDetails(cwd: string): Promise<BranchDetail[]> {
+  return new Promise((resolve, reject) => {
+    const format = [
+      '{"name":"%(refname:short)"',
+      '"head":"%(HEAD)"',
+      '"upstream":"%(upstream:short)"',
+      '"track":"%(upstream:track)"',
+      '"date":"%(committerdate:iso8601)"',
+      '"relative":"%(committerdate:relative)"',
+      '"subject":"%(subject)"}'
+    ].join(',')
+
+    execFile(
+      'git',
+      ['branch', `--format=${format}`, '--sort=-committerdate'],
+      { cwd },
+      async (err, stdout) => {
+        if (err) {
+          reject(err)
+          return
+        }
+
+        let worktrees: WorktreeInfo[] = []
+        try {
+          worktrees = await listWorktrees(cwd)
+        } catch {
+          // ignore – worktree info is optional
+        }
+
+        const wtByBranch = new Map(worktrees.map((w) => [w.branch, w.path]))
+
+        const branches: BranchDetail[] = stdout
+          .trim()
+          .split('\n')
+          .filter((line) => line.length > 0)
+          .map((line) => {
+            const obj = JSON.parse(line)
+            return {
+              name: obj.name,
+              isHead: obj.head === '*',
+              upstream: obj.upstream || '',
+              gone: obj.track.includes('gone'),
+              lastCommitDate: obj.date || '',
+              lastCommitRelative: obj.relative || '',
+              lastCommitSubject: obj.subject || '',
+              worktreePath: wtByBranch.get(obj.name) || ''
+            }
+          })
+
+        resolve(branches)
+      }
+    )
+  })
+}
+
+export function deleteBranch(cwd: string, branch: string, force: boolean): Promise<void> {
+  return new Promise((resolve, reject) => {
+    execFile('git', ['branch', force ? '-D' : '-d', branch], { cwd }, (err) => {
+      if (err) {
+        reject(err)
+        return
+      }
+      resolve()
+    })
+  })
+}
+
+export function deleteRemoteBranch(
+  cwd: string,
+  remote: string,
+  branch: string
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    execFile('git', ['push', remote, '--delete', branch], { cwd }, (err) => {
+      if (err) {
+        reject(err)
+        return
+      }
+      resolve()
+    })
+  })
+}
+
+export function fetchPrune(cwd: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    execFile('git', ['fetch', '--prune'], { cwd }, (err) => {
+      if (err) {
+        reject(err)
+        return
+      }
+      resolve()
+    })
+  })
+}

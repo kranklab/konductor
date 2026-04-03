@@ -2,7 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 import type { ChangedFile } from '../main/fileWatcher'
 import type { SessionInfo } from '../main/sessionManager'
 import type { PersistedState } from '../main/store'
-import type { WorktreeInfo } from '../main/worktree'
+import type { WorktreeInfo, BranchDetail } from '../main/worktree'
 
 export interface KonductorAPI {
   loadState: () => Promise<PersistedState>
@@ -27,6 +27,10 @@ export interface KonductorAPI {
   createWorktree: (cwd: string, branch: string, newBranch: boolean) => Promise<WorktreeInfo>
   removeWorktree: (repoRoot: string, worktreePath: string) => Promise<void>
   listBranches: (cwd: string) => Promise<string[]>
+  getBranchDetails: (cwd: string) => Promise<BranchDetail[]>
+  deleteBranch: (cwd: string, branch: string, force: boolean) => Promise<void>
+  deleteRemoteBranch: (cwd: string, remote: string, branch: string) => Promise<void>
+  fetchPrune: (cwd: string) => Promise<void>
 }
 
 const api: KonductorAPI = {
@@ -94,7 +98,13 @@ const api: KonductorAPI = {
     ipcRenderer.invoke('create-worktree', cwd, branch, newBranch),
   removeWorktree: (repoRoot: string, worktreePath: string) =>
     ipcRenderer.invoke('remove-worktree', repoRoot, worktreePath),
-  listBranches: (cwd: string) => ipcRenderer.invoke('list-branches', cwd)
+  listBranches: (cwd: string) => ipcRenderer.invoke('list-branches', cwd),
+  getBranchDetails: (cwd: string) => ipcRenderer.invoke('get-branch-details', cwd),
+  deleteBranch: (cwd: string, branch: string, force: boolean) =>
+    ipcRenderer.invoke('delete-branch', cwd, branch, force),
+  deleteRemoteBranch: (cwd: string, remote: string, branch: string) =>
+    ipcRenderer.invoke('delete-remote-branch', cwd, remote, branch),
+  fetchPrune: (cwd: string) => ipcRenderer.invoke('fetch-prune', cwd)
 }
 
 if (process.contextIsolated) {
