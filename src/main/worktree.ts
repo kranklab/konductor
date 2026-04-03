@@ -179,11 +179,7 @@ export function deleteBranch(cwd: string, branch: string, force: boolean): Promi
   })
 }
 
-export function deleteRemoteBranch(
-  cwd: string,
-  remote: string,
-  branch: string
-): Promise<void> {
+export function deleteRemoteBranch(cwd: string, remote: string, branch: string): Promise<void> {
   return new Promise((resolve, reject) => {
     execFile('git', ['push', remote, '--delete', branch], { cwd }, (err) => {
       if (err) {

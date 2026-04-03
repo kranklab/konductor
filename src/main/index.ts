@@ -147,12 +147,9 @@ app.whenReady().then(() => {
     return listWorktrees(cwd)
   })
 
-  ipcMain.handle(
-    'create-worktree',
-    (_event, cwd: string, branch: string, newBranch: boolean) => {
-      return createWorktree(cwd, branch, newBranch)
-    }
-  )
+  ipcMain.handle('create-worktree', (_event, cwd: string, branch: string, newBranch: boolean) => {
+    return createWorktree(cwd, branch, newBranch)
+  })
 
   ipcMain.handle('list-branches', (_event, cwd: string) => {
     return listBranches(cwd)
@@ -162,19 +159,13 @@ app.whenReady().then(() => {
     return getBranchDetails(cwd)
   })
 
-  ipcMain.handle(
-    'delete-branch',
-    (_event, cwd: string, branch: string, force: boolean) => {
-      return deleteBranch(cwd, branch, force)
-    }
-  )
+  ipcMain.handle('delete-branch', (_event, cwd: string, branch: string, force: boolean) => {
+    return deleteBranch(cwd, branch, force)
+  })
 
-  ipcMain.handle(
-    'delete-remote-branch',
-    (_event, cwd: string, remote: string, branch: string) => {
-      return deleteRemoteBranch(cwd, remote, branch)
-    }
-  )
+  ipcMain.handle('delete-remote-branch', (_event, cwd: string, remote: string, branch: string) => {
+    return deleteRemoteBranch(cwd, remote, branch)
+  })
 
   ipcMain.handle('fetch-prune', (_event, cwd: string) => {
     return fetchPrune(cwd)

@@ -171,8 +171,7 @@ export default function BranchesView({ project, onBack }: BranchesViewProps): Re
 
   // Selectable = not HEAD, not main worktree
   const mainWorktree = worktrees.find((w) => w.isMain)
-  const canSelect = (b: BranchDetail): boolean =>
-    !b.isHead && b.name !== mainWorktree?.branch
+  const canSelect = (b: BranchDetail): boolean => !b.isHead && b.name !== mainWorktree?.branch
 
   const selectableFiltered = otherBranches.filter(canSelect)
   const allSelected =
@@ -216,9 +215,7 @@ export default function BranchesView({ project, onBack }: BranchesViewProps): Re
             {branches.length} branch{branches.length !== 1 ? 'es' : ''}
           </span>
           {staleBranches.length > 0 && (
-            <span className="text-amber-400">
-              {staleBranches.length} stale
-            </span>
+            <span className="text-amber-400">{staleBranches.length} stale</span>
           )}
           <span className="text-gray-500">
             {worktrees.length} worktree{worktrees.length !== 1 ? 's' : ''}
@@ -273,9 +270,7 @@ export default function BranchesView({ project, onBack }: BranchesViewProps): Re
             key={key}
             onClick={() => setFilter(key)}
             className={`text-[10px] uppercase tracking-wider px-2 py-1 rounded transition-colors ${
-              filter === key
-                ? 'bg-accent/20 text-accent'
-                : 'text-gray-500 hover:text-gray-300'
+              filter === key ? 'bg-accent/20 text-accent' : 'text-gray-500 hover:text-gray-300'
             }`}
           >
             {label}
@@ -526,23 +521,17 @@ function BranchRow({
         </div>
 
         {/* Commit subject */}
-        <div className="text-[10px] text-gray-600 truncate mt-0.5">
-          {branch.lastCommitSubject}
-        </div>
+        <div className="text-[10px] text-gray-600 truncate mt-0.5">{branch.lastCommitSubject}</div>
 
         {/* Worktree path */}
         {branch.worktreePath && (
-          <div className="text-[10px] text-gray-600 truncate mt-0.5">
-            {branch.worktreePath}
-          </div>
+          <div className="text-[10px] text-gray-600 truncate mt-0.5">{branch.worktreePath}</div>
         )}
       </div>
 
       {/* Upstream */}
       <div className="w-32 text-[10px] text-gray-500 truncate">
-        {branch.upstream || (
-          <span className="text-gray-700 italic">no upstream</span>
-        )}
+        {branch.upstream || <span className="text-gray-700 italic">no upstream</span>}
       </div>
 
       {/* Last commit */}

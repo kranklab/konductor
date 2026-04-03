@@ -64,7 +64,14 @@ export default function GridView({
             }`}
             title="Single column"
           >
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            >
               <rect x="2" y="1" width="12" height="14" rx="1.5" />
             </svg>
           </button>
@@ -77,7 +84,14 @@ export default function GridView({
             }`}
             title="Two columns"
           >
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            >
               <rect x="1" y="1" width="5.5" height="14" rx="1.5" />
               <rect x="9.5" y="1" width="5.5" height="14" rx="1.5" />
             </svg>
@@ -107,17 +121,33 @@ export default function GridView({
           <span className="text-sm">New Session</span>
           <div className="flex flex-col items-center gap-1.5 mt-2">
             <span className="flex items-center gap-1">
-              <kbd className="px-1 py-0.5 rounded bg-surface border border-surface-border text-[9px] text-gray-600 font-mono">Ctrl</kbd>
-              <kbd className="px-1 py-0.5 rounded bg-surface border border-surface-border text-[9px] text-gray-600 font-mono">Shift</kbd>
-              <kbd className="px-1 py-0.5 rounded bg-surface border border-surface-border text-[9px] text-gray-600 font-mono">O</kbd>
+              <kbd className="px-1 py-0.5 rounded bg-surface border border-surface-border text-[9px] text-gray-600 font-mono">
+                Ctrl
+              </kbd>
+              <kbd className="px-1 py-0.5 rounded bg-surface border border-surface-border text-[9px] text-gray-600 font-mono">
+                Shift
+              </kbd>
+              <kbd className="px-1 py-0.5 rounded bg-surface border border-surface-border text-[9px] text-gray-600 font-mono">
+                O
+              </kbd>
             </span>
             <span className="flex items-center gap-1 text-[9px] text-gray-600">
               navigate
-              <kbd className="px-1 py-0.5 rounded bg-surface border border-surface-border text-[9px] text-gray-600 font-mono">Alt</kbd>
-              <kbd className="px-1 py-0.5 rounded bg-surface border border-surface-border text-[9px] text-gray-600 font-mono">&larr;</kbd>
-              <kbd className="px-1 py-0.5 rounded bg-surface border border-surface-border text-[9px] text-gray-600 font-mono">&rarr;</kbd>
-              <kbd className="px-1 py-0.5 rounded bg-surface border border-surface-border text-[9px] text-gray-600 font-mono">&uarr;</kbd>
-              <kbd className="px-1 py-0.5 rounded bg-surface border border-surface-border text-[9px] text-gray-600 font-mono">&darr;</kbd>
+              <kbd className="px-1 py-0.5 rounded bg-surface border border-surface-border text-[9px] text-gray-600 font-mono">
+                Alt
+              </kbd>
+              <kbd className="px-1 py-0.5 rounded bg-surface border border-surface-border text-[9px] text-gray-600 font-mono">
+                &larr;
+              </kbd>
+              <kbd className="px-1 py-0.5 rounded bg-surface border border-surface-border text-[9px] text-gray-600 font-mono">
+                &rarr;
+              </kbd>
+              <kbd className="px-1 py-0.5 rounded bg-surface border border-surface-border text-[9px] text-gray-600 font-mono">
+                &uarr;
+              </kbd>
+              <kbd className="px-1 py-0.5 rounded bg-surface border border-surface-border text-[9px] text-gray-600 font-mono">
+                &darr;
+              </kbd>
             </span>
           </div>
         </button>

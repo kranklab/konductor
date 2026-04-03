@@ -41,7 +41,7 @@ function App(): React.JSX.Element {
   // Worktree modal state: stores projectId when modal is open
   const [worktreeProjectId, setWorktreeProjectId] = useState<string | null>(null)
   const worktreeProject = worktreeProjectId
-    ? projects.find((p) => p.id === worktreeProjectId) ?? null
+    ? (projects.find((p) => p.id === worktreeProjectId) ?? null)
     : null
 
   // Close-worktree confirmation state

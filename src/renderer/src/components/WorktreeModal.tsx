@@ -166,10 +166,7 @@ export default function WorktreeModal({
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-surface-border">
           <h2 className="text-sm font-semibold text-gray-200">Choose Worktree</h2>
-          <button
-            onClick={onCancel}
-            className="text-gray-500 hover:text-gray-300 text-sm"
-          >
+          <button onClick={onCancel} className="text-gray-500 hover:text-gray-300 text-sm">
             Esc
           </button>
         </div>
@@ -203,9 +200,7 @@ export default function WorktreeModal({
                       <div className="text-xs text-gray-200 truncate">{wt.branch}</div>
                       <div className="text-[10px] text-gray-600 truncate">{wt.path}</div>
                     </div>
-                    {wt.isMain && (
-                      <span className="text-[10px] text-gray-600 shrink-0">main</span>
-                    )}
+                    {wt.isMain && <span className="text-[10px] text-gray-600 shrink-0">main</span>}
                   </button>
                 ))}
               </div>
