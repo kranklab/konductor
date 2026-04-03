@@ -9,7 +9,7 @@ Download the latest build from the [`latest` release](../../releases/tag/latest)
 ### Linux (AppImage)
 
 ```bash
-curl -fSL "https://github.com/kranklab/conductor/releases/download/latest/konductor.AppImage" -o konductor.AppImage
+curl -fSL "https://github.com/kranklab/konductor/releases/download/latest/konductor.AppImage" -o konductor.AppImage
 chmod +x konductor.AppImage
 ./konductor.AppImage
 ```
@@ -17,21 +17,8 @@ chmod +x konductor.AppImage
 ### Linux (deb)
 
 ```bash
-curl -fSL "https://github.com/kranklab/conductor/releases/download/latest/konductor.deb" -o konductor.deb
+curl -fSL "https://github.com/kranklab/konductor/releases/download/latest/konductor.deb" -o konductor.deb
 sudo dpkg -i konductor.deb
-```
-
-### macOS
-
-```bash
-curl -fSL "https://github.com/kranklab/conductor/releases/download/latest/konductor.dmg" -o konductor.dmg
-open konductor.dmg
-```
-
-### Windows
-
-```bash
-curl -fSL "https://github.com/kranklab/conductor/releases/download/latest/konductor-setup.exe" -o konductor-setup.exe
 ```
 
 ## Development
