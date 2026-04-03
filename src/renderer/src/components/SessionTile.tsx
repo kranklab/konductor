@@ -5,6 +5,7 @@ import type { Session } from '../types'
 interface SessionTileProps {
   session: Session
   isActive: boolean
+  onSelect: () => void
   onFocus: () => void
   onClose: () => void
   onResize: (cols: number, rows: number) => void
@@ -13,6 +14,7 @@ interface SessionTileProps {
 export default function SessionTile({
   session,
   isActive,
+  onSelect,
   onFocus,
   onClose,
   onResize
@@ -82,7 +84,11 @@ export default function SessionTile({
           ? 'border-accent ring-1 ring-accent/30'
           : 'border-surface-border hover:border-surface-border/80'
       }`}
-      onClick={onFocus}
+      onClick={() => {
+        onSelect()
+        session.terminal.focus()
+      }}
+      onDoubleClick={onFocus}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-1.5 bg-surface-overlay border-b border-surface-border">

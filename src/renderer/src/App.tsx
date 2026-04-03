@@ -173,6 +173,7 @@ function App(): React.JSX.Element {
             project={activeProject}
             sessions={sessions}
             activeSessionId={activeSessionId}
+            onSelectSession={setActiveSessionId}
             onFocusSession={handleFocusSession}
             onCloseSession={handleCloseSession}
             onResizeSession={handleResizeSession}
