@@ -164,7 +164,7 @@ function App(): React.JSX.Element {
         }}
         onSelectSession={(id) => {
           setActiveSessionId(id)
-          if (effectiveViewMode === 'grid') setViewMode('focus')
+          if (effectiveViewMode !== 'focus') setViewMode('focus')
         }}
         onSetView={setViewMode}
         onNewProject={handleNewProject}

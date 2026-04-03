@@ -115,14 +115,14 @@ export interface BranchDetail {
 export function getBranchDetails(cwd: string): Promise<BranchDetail[]> {
   return new Promise((resolve, reject) => {
     const format = [
-      '%(refname:short)',
-      '%(HEAD)',
-      '%(upstream:short)',
-      '%(upstream:track)',
-      '%(committerdate:iso8601)',
-      '%(committerdate:relative)',
-      '%(subject)'
-    ].join('\x00')
+      '{"name":"%(refname:short)"',
+      '"head":"%(HEAD)"',
+      '"upstream":"%(upstream:short)"',
+      '"track":"%(upstream:track)"',
+      '"date":"%(committerdate:iso8601)"',
+      '"relative":"%(committerdate:relative)"',
+      '"subject":"%(subject)"}'
+    ].join(',')
 
     execFile(
       'git',
@@ -148,16 +148,16 @@ export function getBranchDetails(cwd: string): Promise<BranchDetail[]> {
           .split('\n')
           .filter((line) => line.length > 0)
           .map((line) => {
-            const [name, head, upstream, track, date, relative, subject] = line.split('\x00')
+            const obj = JSON.parse(line)
             return {
-              name,
-              isHead: head === '*',
-              upstream: upstream || '',
-              gone: track.includes('gone'),
-              lastCommitDate: date || '',
-              lastCommitRelative: relative || '',
-              lastCommitSubject: subject || '',
-              worktreePath: wtByBranch.get(name) || ''
+              name: obj.name,
+              isHead: obj.head === '*',
+              upstream: obj.upstream || '',
+              gone: obj.track.includes('gone'),
+              lastCommitDate: obj.date || '',
+              lastCommitRelative: obj.relative || '',
+              lastCommitSubject: obj.subject || '',
+              worktreePath: wtByBranch.get(obj.name) || ''
             }
           })
 
