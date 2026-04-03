@@ -3,7 +3,7 @@ import type { ViewMode, Session } from './types'
 import { useSessions } from './hooks/useSessions'
 import { useFileChanges } from './hooks/useFileChanges'
 import Sidebar from './components/Sidebar'
-import GridView from './components/GridView'
+import GridView, { type GridCols } from './components/GridView'
 import FocusView from './components/FocusView'
 import ChangesView from './components/ChangesView'
 import WorktreeModal from './components/WorktreeModal'
@@ -12,6 +12,7 @@ const savedViewMode = import.meta.hot?.data?.viewMode as ViewMode | undefined
 
 function App(): React.JSX.Element {
   const [viewMode, setViewMode] = useState<ViewMode>(savedViewMode ?? 'grid')
+  const [gridCols, setGridCols] = useState<GridCols>(2)
 
   useEffect(() => {
     if (!import.meta.hot) return
@@ -144,6 +145,77 @@ function App(): React.JSX.Element {
     [resizeSession]
   )
 
+  // ─── Keyboard shortcuts ──────────────────────────────────────────────
+  const sessionsRef = useRef(sessions)
+  const activeSessionIdRef = useRef(activeSessionId)
+  const effectiveViewModeRef = useRef(effectiveViewMode)
+  const gridColsRef = useRef(gridCols)
+  useEffect(() => {
+    sessionsRef.current = sessions
+    activeSessionIdRef.current = activeSessionId
+    effectiveViewModeRef.current = effectiveViewMode
+    gridColsRef.current = gridCols
+  })
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent): void {
+      // Alt + Arrow keys — spatial grid navigation
+      if (e.altKey && !e.ctrlKey && !e.shiftKey && e.key.startsWith('Arrow')) {
+        const s = sessionsRef.current
+        if (s.length < 2) return
+        const idx = s.findIndex((x) => x.id === activeSessionIdRef.current)
+        if (idx < 0) return
+
+        const c = gridColsRef.current
+        const row = Math.floor(idx / c)
+        const col = idx % c
+        const totalRows = Math.ceil(s.length / c)
+        let next = -1
+
+        if (e.key === 'ArrowRight' && c > 1) {
+          const target = row * c + col + 1
+          if (col + 1 < c && target < s.length) next = target
+        } else if (e.key === 'ArrowLeft' && c > 1) {
+          if (col > 0) next = row * c + col - 1
+        } else if (e.key === 'ArrowDown') {
+          const target = (row + 1) * c + col
+          if (row + 1 < totalRows && target < s.length) next = target
+        } else if (e.key === 'ArrowUp') {
+          if (row > 0) next = (row - 1) * c + col
+        }
+
+        if (next >= 0) {
+          setActiveSessionId(s[next].id)
+          // Focus the terminal so keystrokes go to it even in grid view
+          requestAnimationFrame(() => s[next].terminal.focus())
+          e.preventDefault()
+        }
+        return
+      }
+
+      // Ctrl+Shift+X — toggle focus/grid
+      if (e.ctrlKey && e.shiftKey && e.key === 'X') {
+        if (effectiveViewModeRef.current === 'focus') {
+          setViewMode('grid')
+        } else if (activeSessionIdRef.current) {
+          setViewMode('focus')
+        }
+        e.preventDefault()
+        return
+      }
+
+      // Ctrl+Shift+O — new session
+      if (e.ctrlKey && e.shiftKey && e.key === 'O') {
+        handleNewSession()
+        e.preventDefault()
+        return
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [setActiveSessionId, handleNewSession])
+
   return (
     <div className="h-screen w-screen flex bg-surface">
       <Sidebar
@@ -174,6 +246,8 @@ function App(): React.JSX.Element {
             sessions={sessions}
             activeSessionId={activeSessionId}
             onSelectSession={setActiveSessionId}
+            gridCols={gridCols}
+            onSetGridCols={setGridCols}
             onFocusSession={handleFocusSession}
             onCloseSession={handleCloseSession}
             onResizeSession={handleResizeSession}

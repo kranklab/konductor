@@ -1,6 +1,14 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { Project, Session, ViewMode } from '../types'
 import logoSvg from '../assets/logo.svg'
+
+function Kbd({ children }: { children: React.ReactNode }): React.JSX.Element {
+  return (
+    <kbd className="px-1 py-0.5 rounded bg-surface border border-surface-border text-[9px] text-gray-400 font-mono">
+      {children}
+    </kbd>
+  )
+}
 
 interface SidebarProps {
   projects: Project[]
@@ -234,7 +242,7 @@ export default function Sidebar({
       </div>
 
       {/* Footer */}
-      <div className="border-t border-surface-border px-3 py-2">
+      <div className="border-t border-surface-border px-3 py-2 space-y-1.5">
         <button
           onClick={onNewProject}
           className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded text-xs text-gray-500 hover:text-accent hover:bg-surface-raised transition-colors"
@@ -243,7 +251,62 @@ export default function Sidebar({
           <span>+</span>
           <span>New Project</span>
         </button>
+        <ShortcutHelp />
       </div>
+    </div>
+  )
+}
+
+function ShortcutHelp(): React.JSX.Element {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    function handleClick(e: MouseEvent): void {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [open])
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((p) => !p)}
+        className={`w-full flex items-center justify-center gap-1 py-1 rounded text-[10px] transition-colors ${
+          open
+            ? 'text-accent bg-accent/10'
+            : 'text-gray-600 hover:text-gray-400 hover:bg-surface-raised'
+        }`}
+      >
+        <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <circle cx="8" cy="8" r="6.5" />
+          <path d="M6.5 6.5a1.5 1.5 0 013 0c0 1-1.5 1-1.5 2" strokeLinecap="round" />
+          <circle cx="8" cy="11.5" r="0.5" fill="currentColor" stroke="none" />
+        </svg>
+        <span>Shortcuts</span>
+      </button>
+
+      {open && (
+        <div className="absolute bottom-full left-0 right-0 mb-1 bg-surface-overlay border border-surface-border rounded-lg shadow-2xl p-3 space-y-2 z-50">
+          <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-2">Keyboard Shortcuts</div>
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-gray-400">New session</span>
+              <span className="flex gap-0.5"><Kbd>Ctrl</Kbd><Kbd>Shift</Kbd><Kbd>O</Kbd></span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-gray-400">Focus / Grid</span>
+              <span className="flex gap-0.5"><Kbd>Ctrl</Kbd><Kbd>Shift</Kbd><Kbd>X</Kbd></span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-gray-400">Navigate sessions</span>
+              <span className="flex gap-0.5"><Kbd>Alt</Kbd><Kbd>&larr;</Kbd><Kbd>&rarr;</Kbd><Kbd>&uarr;</Kbd><Kbd>&darr;</Kbd></span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

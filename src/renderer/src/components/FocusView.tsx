@@ -50,9 +50,8 @@ export default function FocusView({
       } catch {
         // ignore
       }
+      session.terminal.focus()
     })
-
-    session.terminal.focus()
   }, [session])
 
   useEffect(() => {
