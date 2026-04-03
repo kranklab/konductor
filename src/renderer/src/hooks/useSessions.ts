@@ -40,8 +40,18 @@ const initialHmrState: HmrState | null = import.meta.hot?.data?.hmrState
   ? (import.meta.hot.data.hmrState as HmrState)
   : null
 
+function isAppShortcut(e: KeyboardEvent): boolean {
+  // Alt + Arrow keys — grid navigation
+  if (e.altKey && !e.ctrlKey && !e.shiftKey && e.key.startsWith('Arrow')) return true
+  // Ctrl+Shift+X — toggle focus/grid
+  if (e.ctrlKey && e.shiftKey && e.key === 'X') return true
+  // Ctrl+Shift+O — new session
+  if (e.ctrlKey && e.shiftKey && e.key === 'O') return true
+  return false
+}
+
 function createTerminal(): Terminal {
-  return new Terminal({
+  const term = new Terminal({
     theme: TERM_THEME,
     fontFamily: '"JetBrains Mono", "Geist Mono", monospace',
     fontSize: 13,
@@ -50,6 +60,14 @@ function createTerminal(): Terminal {
     cursorStyle: 'bar',
     allowProposedApi: true
   })
+
+  // Let app-level shortcuts bypass xterm so they bubble to the window handler
+  term.attachCustomKeyEventHandler((e) => {
+    if (isAppShortcut(e)) return false
+    return true
+  })
+
+  return term
 }
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
@@ -311,9 +329,9 @@ export function useSessions() {
     })
   }, [])
 
-  const createSession = useCallback(async (projectId: string, cwd: string) => {
+  const createSession = useCallback(async (projectId: string, cwd: string, branch?: string) => {
     const sessionCount = sessionsRef.current.filter((s) => s.projectId === projectId).length
-    const title = `Session ${sessionCount + 1}`
+    const title = branch ? `${branch}` : `Session ${sessionCount + 1}`
 
     const { id, claudeSessionId } = await api.createSession(cwd, { name: title })
 

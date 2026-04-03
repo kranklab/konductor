@@ -19,7 +19,6 @@ export default function FocusView({
 }: FocusViewProps): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
-  const mountedRef = useRef(false)
   const onResizeRef = useRef(onResize)
   useEffect(() => {
     onResizeRef.current = onResize
@@ -29,33 +28,30 @@ export default function FocusView({
     const container = containerRef.current
     if (!container) return
 
-    if (!mountedRef.current) {
-      const fitAddon = new FitAddon()
-      fitAddonRef.current = fitAddon
-      session.terminal.loadAddon(fitAddon)
+    // Clear container when session changes
+    while (container.firstChild) {
+      container.removeChild(container.firstChild)
+    }
 
-      // Terminal might already be opened (from grid view)
-      // If so, we need to re-parent the DOM element
-      if (session.terminal.element) {
-        container.appendChild(session.terminal.element)
-      } else {
-        session.terminal.open(container)
-      }
-      mountedRef.current = true
-    } else if (session.terminal.element) {
+    const fitAddon = new FitAddon()
+    fitAddonRef.current = fitAddon
+    session.terminal.loadAddon(fitAddon)
+
+    if (session.terminal.element) {
       container.appendChild(session.terminal.element)
+    } else {
+      session.terminal.open(container)
     }
 
     requestAnimationFrame(() => {
       try {
-        fitAddonRef.current?.fit()
+        fitAddon.fit()
         onResizeRef.current(session.terminal.cols, session.terminal.rows)
       } catch {
         // ignore
       }
+      session.terminal.focus()
     })
-
-    session.terminal.focus()
   }, [session])
 
   useEffect(() => {

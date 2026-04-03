@@ -1,4 +1,8 @@
 import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
+
+if (process.platform === 'linux') {
+  app.commandLine.appendSwitch('no-sandbox')
+}
 import { execFile } from 'child_process'
 import { join } from 'path'
 import { readFile } from 'fs/promises'
@@ -15,6 +19,16 @@ import {
   getSessionChanges
 } from './sessionManager'
 import { loadState, saveState, type PersistedState } from './store'
+import {
+  listWorktrees,
+  createWorktree,
+  removeWorktree,
+  listBranches,
+  getBranchDetails,
+  deleteBranch,
+  deleteRemoteBranch,
+  fetchPrune
+} from './worktree'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -127,6 +141,47 @@ app.whenReady().then(() => {
         })
       }
     })
+  })
+
+  ipcMain.handle('list-worktrees', (_event, cwd: string) => {
+    return listWorktrees(cwd)
+  })
+
+  ipcMain.handle(
+    'create-worktree',
+    (_event, cwd: string, branch: string, newBranch: boolean) => {
+      return createWorktree(cwd, branch, newBranch)
+    }
+  )
+
+  ipcMain.handle('list-branches', (_event, cwd: string) => {
+    return listBranches(cwd)
+  })
+
+  ipcMain.handle('get-branch-details', (_event, cwd: string) => {
+    return getBranchDetails(cwd)
+  })
+
+  ipcMain.handle(
+    'delete-branch',
+    (_event, cwd: string, branch: string, force: boolean) => {
+      return deleteBranch(cwd, branch, force)
+    }
+  )
+
+  ipcMain.handle(
+    'delete-remote-branch',
+    (_event, cwd: string, remote: string, branch: string) => {
+      return deleteRemoteBranch(cwd, remote, branch)
+    }
+  )
+
+  ipcMain.handle('fetch-prune', (_event, cwd: string) => {
+    return fetchPrune(cwd)
+  })
+
+  ipcMain.handle('remove-worktree', (_event, repoRoot: string, worktreePath: string) => {
+    return removeWorktree(repoRoot, worktreePath)
   })
 
   ipcMain.handle('select-directory', async () => {

@@ -1,6 +1,6 @@
 import type { Terminal } from '@xterm/xterm'
 
-export type ViewMode = 'grid' | 'focus' | 'changes'
+export type ViewMode = 'grid' | 'focus' | 'changes' | 'branches'
 
 export interface Project {
   id: string

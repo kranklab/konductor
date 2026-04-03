@@ -1,5 +1,14 @@
+import { useState, useEffect, useRef } from 'react'
 import type { Project, Session, ViewMode } from '../types'
 import logoSvg from '../assets/logo.svg'
+
+function Kbd({ children }: { children: React.ReactNode }): React.JSX.Element {
+  return (
+    <kbd className="px-1 py-0.5 rounded bg-surface border border-surface-border text-[9px] text-gray-400 font-mono">
+      {children}
+    </kbd>
+  )
+}
 
 interface SidebarProps {
   projects: Project[]
@@ -14,6 +23,7 @@ interface SidebarProps {
   onNewProject: () => void
   onNewSession: (projectId: string) => void
   onRemoveProject: (id: string) => void
+  onShowBranches: () => void
 }
 
 export default function Sidebar({
@@ -27,8 +37,39 @@ export default function Sidebar({
   onSetView,
   onNewProject,
   onNewSession,
-  onRemoveProject
+  onRemoveProject,
+  onShowBranches
 }: SidebarProps): React.JSX.Element {
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
+    const initial = new Set<string>()
+    if (activeProjectId) initial.add(activeProjectId)
+    return initial
+  })
+
+  // Auto-expand when active project changes (e.g. new project created)
+  useEffect(() => {
+    if (activeProjectId) {
+      setExpandedIds((prev) => {
+        if (prev.has(activeProjectId)) return prev
+        const next = new Set(prev)
+        next.add(activeProjectId)
+        return next
+      })
+    }
+  }, [activeProjectId])
+
+  const toggleExpanded = (id: string): void => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
+  }
+
   return (
     <div className="w-52 shrink-0 bg-surface-overlay border-r border-surface-border flex flex-col">
       {/* Header */}
@@ -91,18 +132,31 @@ export default function Sidebar({
         {projects.map((project) => {
           const projectSessions = allSessions.filter((s) => s.projectId === project.id)
           const isActive = project.id === activeProjectId
+          const isExpanded = expandedIds.has(project.id)
 
           return (
             <div key={project.id} className="mb-1">
               {/* Project header */}
               <button
-                onClick={() => onSelectProject(project.id)}
+                onClick={() => {
+                  onSelectProject(project.id)
+                  toggleExpanded(project.id)
+                }}
                 className={`w-full flex items-center gap-2 px-3 py-1.5 text-left group transition-colors ${
                   isActive
                     ? 'bg-accent/10 text-white'
                     : 'text-gray-400 hover:text-gray-200 hover:bg-surface-raised'
                 }`}
               >
+                <svg
+                  width="8"
+                  height="8"
+                  viewBox="0 0 8 8"
+                  fill="currentColor"
+                  className={`shrink-0 transition-transform ${isExpanded ? 'rotate-90' : ''} ${isActive ? 'text-accent' : 'text-gray-500'}`}
+                >
+                  <path d="M2 1l4 3-4 3V1z" />
+                </svg>
                 <svg
                   width="12"
                   height="12"
@@ -126,34 +180,95 @@ export default function Sidebar({
                 </button>
               </button>
 
-              {/* Sessions within project */}
-              {isActive && (
+              {/* Expanded project contents */}
+              {isExpanded && (
                 <div className="ml-4 border-l border-surface-border">
-                  {projectSessions.map((session) => (
-                    <button
-                      key={session.id}
-                      onClick={() => onSelectSession(session.id)}
-                      className={`w-full flex items-center gap-2 pl-3 pr-3 py-1 text-left transition-colors ${
-                        session.id === activeSessionId
-                          ? 'text-white bg-accent/10'
-                          : 'text-gray-500 hover:text-gray-300 hover:bg-surface-raised'
-                      }`}
-                    >
-                      <div
-                        className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                          session.alive ? 'bg-green-400' : 'bg-red-400'
-                        }`}
-                      />
-                      <span className="text-xs truncate">{session.title}</span>
-                    </button>
-                  ))}
+                  {/* Sessions section */}
+                  <div className="flex items-center pl-3 pr-3 pt-2 pb-1">
+                    <span className="text-[10px] uppercase tracking-wider text-gray-600 flex-1">
+                      Sessions
+                    </span>
+                    <span className="text-[10px] text-gray-600">
+                      {projectSessions.length}
+                    </span>
+                  </div>
 
-                  {/* Add session within project */}
+                  {projectSessions.map((session) => {
+                    const isWorktree = session.cwd !== project.cwd
+                    return (
+                      <button
+                        key={session.id}
+                        onClick={() => onSelectSession(session.id)}
+                        className={`w-full flex items-start gap-2 pl-3 pr-3 py-1 text-left transition-colors ${
+                          session.id === activeSessionId
+                            ? 'text-white bg-accent/10'
+                            : 'text-gray-500 hover:text-gray-300 hover:bg-surface-raised'
+                        }`}
+                      >
+                        <div
+                          className={`w-1.5 h-1.5 rounded-full shrink-0 mt-1 ${
+                            session.alive ? 'bg-green-400' : 'bg-red-400'
+                          }`}
+                        />
+                        {isWorktree && (
+                          <svg
+                            width="10"
+                            height="10"
+                            viewBox="0 0 16 16"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            className="shrink-0 mt-0.5 text-gray-500"
+                          >
+                            <path d="M5 3v6.5a2.5 2.5 0 005 0V8" />
+                            <circle cx="5" cy="2" r="1.5" />
+                            <circle cx="10" cy="7" r="1.5" />
+                          </svg>
+                        )}
+                        <div className="min-w-0">
+                          <span className="text-xs truncate block">{session.title}</span>
+                          {isWorktree && (
+                            <span className="text-[9px] text-gray-600 truncate block">
+                              {session.cwd.split('/').slice(-3).join('/')}
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    )
+                  })}
+
                   <button
                     onClick={() => onNewSession(project.id)}
                     className="w-full flex items-center gap-2 pl-3 pr-3 py-1 text-left text-gray-600 hover:text-accent transition-colors"
                   >
                     <span className="text-xs">+ session</span>
+                  </button>
+
+                  {/* Branches & Worktrees section */}
+                  <button
+                    onClick={onShowBranches}
+                    className={`w-full flex items-center gap-2 pl-3 pr-3 pt-2 pb-1.5 text-left transition-colors ${
+                      viewMode === 'branches'
+                        ? 'text-accent'
+                        : 'text-gray-600 hover:text-gray-300'
+                    }`}
+                  >
+                    <svg
+                      width="10"
+                      height="10"
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      className="shrink-0"
+                    >
+                      <path d="M5 3v6.5a2.5 2.5 0 005 0V8" />
+                      <circle cx="5" cy="2" r="1.5" />
+                      <circle cx="10" cy="7" r="1.5" />
+                    </svg>
+                    <span className="text-[10px] uppercase tracking-wider flex-1">
+                      Branches
+                    </span>
                   </button>
                 </div>
               )}
@@ -163,7 +278,7 @@ export default function Sidebar({
       </div>
 
       {/* Footer */}
-      <div className="border-t border-surface-border px-3 py-2">
+      <div className="border-t border-surface-border px-3 py-2 space-y-1.5">
         <button
           onClick={onNewProject}
           className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded text-xs text-gray-500 hover:text-accent hover:bg-surface-raised transition-colors"
@@ -172,7 +287,62 @@ export default function Sidebar({
           <span>+</span>
           <span>New Project</span>
         </button>
+        <ShortcutHelp />
       </div>
+    </div>
+  )
+}
+
+function ShortcutHelp(): React.JSX.Element {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    function handleClick(e: MouseEvent): void {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [open])
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((p) => !p)}
+        className={`w-full flex items-center justify-center gap-1 py-1 rounded text-[10px] transition-colors ${
+          open
+            ? 'text-accent bg-accent/10'
+            : 'text-gray-600 hover:text-gray-400 hover:bg-surface-raised'
+        }`}
+      >
+        <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <circle cx="8" cy="8" r="6.5" />
+          <path d="M6.5 6.5a1.5 1.5 0 013 0c0 1-1.5 1-1.5 2" strokeLinecap="round" />
+          <circle cx="8" cy="11.5" r="0.5" fill="currentColor" stroke="none" />
+        </svg>
+        <span>Shortcuts</span>
+      </button>
+
+      {open && (
+        <div className="absolute bottom-full left-0 right-0 mb-1 bg-surface-overlay border border-surface-border rounded-lg shadow-2xl p-3 space-y-2 z-50">
+          <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-2">Keyboard Shortcuts</div>
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-gray-400">New session</span>
+              <span className="flex gap-0.5"><Kbd>Ctrl</Kbd><Kbd>Shift</Kbd><Kbd>O</Kbd></span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-gray-400">Focus / Grid</span>
+              <span className="flex gap-0.5"><Kbd>Ctrl</Kbd><Kbd>Shift</Kbd><Kbd>X</Kbd></span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-gray-400">Navigate sessions</span>
+              <span className="flex gap-0.5"><Kbd>Alt</Kbd><Kbd>&larr;</Kbd><Kbd>&rarr;</Kbd><Kbd>&uarr;</Kbd><Kbd>&darr;</Kbd></span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
