@@ -99,6 +99,7 @@ export default function WorktreeModal({
   const [baseBranch, setBaseBranch] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [updateFromOrigin, setUpdateFromOrigin] = useState(true)
 
   useEffect(() => {
     let cancelled = false
@@ -127,32 +128,40 @@ export default function WorktreeModal({
     }
   }, [projectCwd])
 
-  const handleCreate = useCallback(async () => {
-    if (!newBranch.trim()) return
-    setCreating(true)
-    setError(null)
-    try {
-      const wt = await api.createWorktree(projectCwd, newBranch.trim(), true)
-      onSelect(wt.path, wt.branch)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to create worktree')
-      setCreating(false)
-    }
-  }, [projectCwd, newBranch, onSelect])
-
-  const handleCheckoutExisting = useCallback(
-    async (branch: string) => {
+  const handleCreate = useCallback(
+    async (branchName?: string) => {
+      const name = (branchName ?? newBranch).trim()
+      if (!name) return
       setCreating(true)
       setError(null)
       try {
-        const wt = await api.createWorktree(projectCwd, branch, false)
+        const wt = await api.createWorktree(projectCwd, name, true, updateFromOrigin)
         onSelect(wt.path, wt.branch)
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to create worktree')
         setCreating(false)
       }
     },
-    [projectCwd, onSelect]
+    [projectCwd, newBranch, updateFromOrigin, onSelect]
+  )
+
+  const handleQuickCreate = useCallback(() => {
+    handleCreate(randomBranchName())
+  }, [handleCreate])
+
+  const handleCheckoutExisting = useCallback(
+    async (branch: string) => {
+      setCreating(true)
+      setError(null)
+      try {
+        const wt = await api.createWorktree(projectCwd, branch, false, updateFromOrigin)
+        onSelect(wt.path, wt.branch)
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Failed to create worktree')
+        setCreating(false)
+      }
+    },
+    [projectCwd, updateFromOrigin, onSelect]
   )
 
   // Branches that already have worktrees
@@ -181,8 +190,60 @@ export default function WorktreeModal({
               </div>
             )}
 
+            {/* Quick create */}
+            <div className="px-4 pt-4 pb-2">
+              <button
+                onClick={handleQuickCreate}
+                disabled={creating}
+                className="w-full py-2.5 rounded bg-accent hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-medium transition-colors flex items-center justify-center gap-2"
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                >
+                  <path d="M1 10h3l2.5-4L9 10h2.5M1 6h2l1.5 2M11.5 6H10L9 7.5" />
+                  <path d="M12.5 4.5l2 1.5-2 1.5M12.5 8.5l2 1.5-2 1.5" />
+                </svg>
+                {creating ? 'Creating...' : 'Quick Start'}
+              </button>
+              <p className="text-[10px] text-gray-600 mt-1.5 text-center">
+                New worktree with a random branch name
+              </p>
+            </div>
+
+            {/* Update from origin toggle */}
+            <div className="px-4 pb-3">
+              <label className="flex items-center gap-2 cursor-pointer group">
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={updateFromOrigin}
+                  onClick={() => setUpdateFromOrigin((v) => !v)}
+                  className={`relative w-7 h-4 rounded-full transition-colors ${
+                    updateFromOrigin
+                      ? 'bg-accent'
+                      : 'bg-surface-raised border border-surface-border'
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform ${
+                      updateFromOrigin ? 'translate-x-3' : ''
+                    }`}
+                  />
+                </button>
+                <span className="text-[10px] text-gray-500 group-hover:text-gray-400 transition-colors">
+                  Update from origin{baseBranch ? ` (${baseBranch})` : ''}
+                </span>
+              </label>
+            </div>
+
             {/* Existing worktrees */}
-            <div className="p-4">
+            <div className="px-4 pb-4 pt-1 border-t border-surface-border">
               <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-2">
                 Worktrees
               </div>
@@ -272,7 +333,7 @@ export default function WorktreeModal({
                     </div>
                   )}
                   <button
-                    onClick={handleCreate}
+                    onClick={() => handleCreate()}
                     disabled={!newBranch.trim() || creating}
                     className="w-full py-2 rounded bg-accent hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-medium transition-colors"
                   >
