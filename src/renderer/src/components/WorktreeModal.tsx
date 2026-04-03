@@ -128,19 +128,22 @@ export default function WorktreeModal({
     }
   }, [projectCwd])
 
-  const handleCreate = useCallback(async (branchName?: string) => {
-    const name = (branchName ?? newBranch).trim()
-    if (!name) return
-    setCreating(true)
-    setError(null)
-    try {
-      const wt = await api.createWorktree(projectCwd, name, true, updateFromOrigin)
-      onSelect(wt.path, wt.branch)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to create worktree')
-      setCreating(false)
-    }
-  }, [projectCwd, newBranch, updateFromOrigin, onSelect])
+  const handleCreate = useCallback(
+    async (branchName?: string) => {
+      const name = (branchName ?? newBranch).trim()
+      if (!name) return
+      setCreating(true)
+      setError(null)
+      try {
+        const wt = await api.createWorktree(projectCwd, name, true, updateFromOrigin)
+        onSelect(wt.path, wt.branch)
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Failed to create worktree')
+        setCreating(false)
+      }
+    },
+    [projectCwd, newBranch, updateFromOrigin, onSelect]
+  )
 
   const handleQuickCreate = useCallback(() => {
     handleCreate(randomBranchName())
@@ -222,7 +225,9 @@ export default function WorktreeModal({
                   aria-checked={updateFromOrigin}
                   onClick={() => setUpdateFromOrigin((v) => !v)}
                   className={`relative w-7 h-4 rounded-full transition-colors ${
-                    updateFromOrigin ? 'bg-accent' : 'bg-surface-raised border border-surface-border'
+                    updateFromOrigin
+                      ? 'bg-accent'
+                      : 'bg-surface-raised border border-surface-border'
                   }`}
                 >
                   <span

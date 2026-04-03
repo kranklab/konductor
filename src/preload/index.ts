@@ -24,7 +24,12 @@ export interface KonductorAPI {
   getDiff: (cwd: string, filePath: string, isUntracked: boolean) => Promise<string>
   selectDirectory: () => Promise<string | null>
   listWorktrees: (cwd: string) => Promise<WorktreeInfo[]>
-  createWorktree: (cwd: string, branch: string, newBranch: boolean, updateFromOrigin?: boolean) => Promise<WorktreeInfo>
+  createWorktree: (
+    cwd: string,
+    branch: string,
+    newBranch: boolean,
+    updateFromOrigin?: boolean
+  ) => Promise<WorktreeInfo>
   removeWorktree: (repoRoot: string, worktreePath: string) => Promise<void>
   listBranches: (cwd: string) => Promise<string[]>
   getBranchDetails: (cwd: string) => Promise<BranchDetail[]>

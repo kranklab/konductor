@@ -148,9 +148,12 @@ app.whenReady().then(() => {
     return listWorktrees(cwd)
   })
 
-  ipcMain.handle('create-worktree', (_event, cwd: string, branch: string, newBranch: boolean, updateFromOrigin: boolean) => {
-    return createWorktree(cwd, branch, newBranch, updateFromOrigin)
-  })
+  ipcMain.handle(
+    'create-worktree',
+    (_event, cwd: string, branch: string, newBranch: boolean, updateFromOrigin: boolean) => {
+      return createWorktree(cwd, branch, newBranch, updateFromOrigin)
+    }
+  )
 
   ipcMain.handle('list-branches', (_event, cwd: string) => {
     return listBranches(cwd)
