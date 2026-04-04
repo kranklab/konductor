@@ -28,6 +28,7 @@ function App(): React.JSX.Element {
     activeProjectId,
     setActiveProjectId,
     createProject,
+    updateProject,
     removeProject,
     sessions,
     allSessions,
@@ -288,6 +289,7 @@ function App(): React.JSX.Element {
         onNewProject={handleNewProject}
         onNewSession={handleNewSessionInProject}
         onRemoveProject={removeProject}
+        onUpdateProject={updateProject}
         onShowBranches={handleShowBranches}
         onShowGitHub={handleShowGitHub}
       />

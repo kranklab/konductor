@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto'
 import { execFileSync } from 'child_process'
 import { tmpdir } from 'os'
+import { existsSync } from 'fs'
 import { join } from 'path'
 import * as nodePty from 'node-pty'
 import { BrowserWindow } from 'electron'
@@ -76,12 +77,37 @@ function getEnv(): Record<string, string> {
   return cachedEnv
 }
 
+function getProjectEnv(envScript: string): Record<string, string> {
+  try {
+    const shell = getShell()
+    const raw = execFileSync(shell, ['-lc', `source ${JSON.stringify(envScript)} && env`], {
+      encoding: 'utf-8'
+    })
+    const env: Record<string, string> = {}
+    for (const line of raw.split('\n')) {
+      const eq = line.indexOf('=')
+      if (eq > 0) {
+        env[line.substring(0, eq)] = line.substring(eq + 1)
+      }
+    }
+    return env
+  } catch {
+    return getEnv()
+  }
+}
+
+function detectEnvScript(cwd: string): string | null {
+  const candidate = join(cwd, '.konductor', 'envrc.sh')
+  return existsSync(candidate) ? candidate : null
+}
+
 function spawnClaude(
   cwd: string,
   claudeSessionId: string,
   name: string,
   resume: boolean,
-  prompt?: string
+  prompt?: string,
+  env?: Record<string, string>
 ): nodePty.IPty {
   const args = resume
     ? ['--resume', claudeSessionId, '--plugin-dir', PLUGIN_PATH]
@@ -96,21 +122,23 @@ function spawnClaude(
     cols: 80,
     rows: 24,
     cwd,
-    env: { ...getEnv(), KONDUCTOR_STATE_DIR: STATE_DIR }
+    env: { ...(env ?? getEnv()), KONDUCTOR_STATE_DIR: STATE_DIR }
   })
 }
 
 export function createSession(
   cwd: string,
   window: BrowserWindow,
-  opts?: { claudeSessionId?: string; name?: string; resume?: boolean; prompt?: string }
+  opts?: { claudeSessionId?: string; name?: string; resume?: boolean; prompt?: string; envScript?: string }
 ): { id: string; claudeSessionId: string } {
   const id = `session-${nextId++}`
   const claudeSessionId = opts?.claudeSessionId ?? randomUUID()
   const name = opts?.name ?? `Session ${nextId - 1}`
   const resume = opts?.resume ?? false
+  const envScript = opts?.envScript ?? detectEnvScript(cwd)
+  const env = envScript ? getProjectEnv(envScript) : undefined
 
-  const pty = spawnClaude(cwd, claudeSessionId, name, resume, opts?.prompt)
+  const pty = spawnClaude(cwd, claudeSessionId, name, resume, opts?.prompt, env)
 
   const entry: SessionEntry = {
     pty,

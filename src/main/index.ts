@@ -92,7 +92,11 @@ app.whenReady().then(() => {
 
   ipcMain.handle(
     'create-session',
-    (_event, cwd: string, opts?: { claudeSessionId?: string; name?: string; resume?: boolean }) => {
+    (
+      _event,
+      cwd: string,
+      opts?: { claudeSessionId?: string; name?: string; resume?: boolean; envScript?: string }
+    ) => {
       if (!mainWindow) throw new Error('No main window')
       return createSession(cwd, mainWindow, opts)
     }
@@ -211,6 +215,20 @@ app.whenReady().then(() => {
     if (!mainWindow) return null
     const result = await dialog.showOpenDialog(mainWindow, {
       properties: ['openDirectory']
+    })
+    if (result.canceled || result.filePaths.length === 0) return null
+    return result.filePaths[0]
+  })
+
+  ipcMain.handle('select-file', async (_event, title?: string) => {
+    if (!mainWindow) return null
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: title ?? 'Select File',
+      properties: ['openFile'],
+      filters: [
+        { name: 'Shell Scripts', extensions: ['sh', 'bash', 'zsh'] },
+        { name: 'All Files', extensions: ['*'] }
+      ]
     })
     if (result.canceled || result.filePaths.length === 0) return null
     return result.filePaths[0]

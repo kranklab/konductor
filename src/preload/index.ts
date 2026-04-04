@@ -15,7 +15,7 @@ export interface KonductorAPI {
   getScrollback: (sessionId: string) => Promise<string>
   createSession: (
     cwd: string,
-    opts?: { claudeSessionId?: string; name?: string; resume?: boolean; prompt?: string }
+    opts?: { claudeSessionId?: string; name?: string; resume?: boolean; prompt?: string; envScript?: string }
   ) => Promise<{ id: string; claudeSessionId: string }>
   killSession: (sessionId: string) => void
   writeToSession: (sessionId: string, data: string) => void
@@ -27,6 +27,7 @@ export interface KonductorAPI {
   readFile: (path: string) => Promise<string>
   getDiff: (cwd: string, filePath: string, isUntracked: boolean) => Promise<string>
   selectDirectory: () => Promise<string | null>
+  selectFile: (title?: string) => Promise<string | null>
   listWorktrees: (cwd: string) => Promise<WorktreeInfo[]>
   createWorktree: (
     cwd: string,
@@ -58,7 +59,7 @@ const api: KonductorAPI = {
   getScrollback: (sessionId: string) => ipcRenderer.invoke('get-scrollback', sessionId),
   createSession: (
     cwd: string,
-    opts?: { claudeSessionId?: string; name?: string; resume?: boolean; prompt?: string }
+    opts?: { claudeSessionId?: string; name?: string; resume?: boolean; prompt?: string; envScript?: string }
   ) => ipcRenderer.invoke('create-session', cwd, opts),
 
   killSession: (sessionId: string) => ipcRenderer.send('kill-session', sessionId),
@@ -110,6 +111,7 @@ const api: KonductorAPI = {
     ipcRenderer.invoke('get-diff', cwd, filePath, isUntracked),
 
   selectDirectory: () => ipcRenderer.invoke('select-directory'),
+  selectFile: (title?: string) => ipcRenderer.invoke('select-file', title),
 
   listWorktrees: (cwd: string) => ipcRenderer.invoke('list-worktrees', cwd),
   createWorktree: (cwd: string, branch: string, newBranch: boolean, updateFromOrigin?: boolean) =>
