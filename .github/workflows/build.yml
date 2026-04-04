@@ -105,8 +105,8 @@ jobs:
             **Version:** `0.1.0-build.${{ github.run_number }}`
             **Last updated:** ${{ github.event.head_commit.timestamp }}
             **Commit:** ${{ github.sha }}
-          prerelease: true
-          make_latest: false
+          prerelease: false
+          make_latest: true
           files: |
             artifacts/*
         env:

@@ -285,9 +285,46 @@ export default function Sidebar({
           <span>New Project</span>
         </button>
         <ShortcutHelp />
+        <VersionIndicator />
       </div>
     </div>
   )
+}
+
+function VersionIndicator(): React.JSX.Element {
+  const [update, setUpdate] = useState<{ status: 'available' | 'ready'; version: string } | null>(
+    null
+  )
+
+  useEffect(() => {
+    return window.konductorAPI.onUpdateStatus((info) => setUpdate(info))
+  }, [])
+
+  if (update) {
+    const isReady = update.status === 'ready'
+    return (
+      <button
+        onClick={isReady ? () => window.konductorAPI.installUpdate() : undefined}
+        className={`w-full flex items-center justify-center gap-1.5 py-1 rounded text-[10px] transition-colors ${
+          isReady
+            ? 'text-accent hover:bg-accent/10 cursor-pointer'
+            : 'text-yellow-400 cursor-default'
+        }`}
+        title={
+          isReady
+            ? `Click to restart and update to ${update.version}`
+            : `Downloading ${update.version}…`
+        }
+      >
+        <span
+          className={`w-1.5 h-1.5 rounded-full ${isReady ? 'bg-accent' : 'bg-yellow-400 animate-pulse'}`}
+        />
+        <span>{isReady ? `Update to ${update.version}` : `Updating…`}</span>
+      </button>
+    )
+  }
+
+  return <div className="text-[10px] text-gray-600 text-center py-0.5">v{__APP_VERSION__}</div>
 }
 
 function ShortcutHelp(): React.JSX.Element {
@@ -360,9 +397,6 @@ function ShortcutHelp(): React.JSX.Element {
                 <Kbd>&darr;</Kbd>
               </span>
             </div>
-          </div>
-          <div className="border-t border-surface-border mt-2 pt-2 text-[9px] text-gray-600 text-center">
-            v{__APP_VERSION__}
           </div>
         </div>
       )}
