@@ -181,6 +181,10 @@ function App(): React.JSX.Element {
       if (deleteWorktree && repoRoot) {
         try {
           await window.konductorAPI.removeWorktree(repoRoot, sessionCwd)
+          const branch = sessionCwd.split('/').pop()
+          if (branch) {
+            await window.konductorAPI.deleteBranch(repoRoot, branch, true)
+          }
         } catch (e) {
           console.error('Failed to remove worktree:', e)
         }
