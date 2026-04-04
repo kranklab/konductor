@@ -15,7 +15,13 @@ export interface KonductorAPI {
   getScrollback: (sessionId: string) => Promise<string>
   createSession: (
     cwd: string,
-    opts?: { claudeSessionId?: string; name?: string; resume?: boolean; prompt?: string; envScript?: string }
+    opts?: {
+      claudeSessionId?: string
+      name?: string
+      resume?: boolean
+      prompt?: string
+      envScript?: string
+    }
   ) => Promise<{ id: string; claudeSessionId: string }>
   killSession: (sessionId: string) => void
   writeToSession: (sessionId: string, data: string) => void
@@ -59,7 +65,13 @@ const api: KonductorAPI = {
   getScrollback: (sessionId: string) => ipcRenderer.invoke('get-scrollback', sessionId),
   createSession: (
     cwd: string,
-    opts?: { claudeSessionId?: string; name?: string; resume?: boolean; prompt?: string; envScript?: string }
+    opts?: {
+      claudeSessionId?: string
+      name?: string
+      resume?: boolean
+      prompt?: string
+      envScript?: string
+    }
   ) => ipcRenderer.invoke('create-session', cwd, opts),
 
   killSession: (sessionId: string) => ipcRenderer.send('kill-session', sessionId),

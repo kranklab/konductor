@@ -129,7 +129,13 @@ function spawnClaude(
 export function createSession(
   cwd: string,
   window: BrowserWindow,
-  opts?: { claudeSessionId?: string; name?: string; resume?: boolean; prompt?: string; envScript?: string }
+  opts?: {
+    claudeSessionId?: string
+    name?: string
+    resume?: boolean
+    prompt?: string
+    envScript?: string
+  }
 ): { id: string; claudeSessionId: string } {
   const id = `session-${nextId++}`
   const claudeSessionId = opts?.claudeSessionId ?? randomUUID()
