@@ -63,7 +63,7 @@ jobs:
         run: npm ci
 
       - name: Set build version
-        run: echo "BUILD_VERSION=0.1.0-build.${{ github.run_number }}" >> "$GITHUB_ENV"
+        run: echo "BUILD_VERSION=0.1.${{ github.run_number }}" >> "$GITHUB_ENV"
 
       - name: Build
         run: npm run ${{ matrix.build_cmd }} -- --publish never --config.extraMetadata.version=${{ env.BUILD_VERSION }}
@@ -98,11 +98,11 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
-          name: Latest Build (0.1.0-build.${{ github.run_number }})
+          name: Latest Build (0.1.${{ github.run_number }})
           body: |
             Rolling release — automatically updated on each push to `main`.
 
-            **Version:** `0.1.0-build.${{ github.run_number }}`
+            **Version:** `0.1.${{ github.run_number }}`
             **Last updated:** ${{ github.event.head_commit.timestamp }}
             **Commit:** ${{ github.sha }}
           prerelease: false
