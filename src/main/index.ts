@@ -185,6 +185,10 @@ app.whenReady().then(() => {
     return removeWorktree(repoRoot, worktreePath)
   })
 
+  ipcMain.on('install-update', () => {
+    autoUpdater.quitAndInstall()
+  })
+
   ipcMain.handle('select-directory', async () => {
     if (!mainWindow) return null
     const result = await dialog.showOpenDialog(mainWindow, {
@@ -197,6 +201,32 @@ app.whenReady().then(() => {
   createWindow()
 
   if (!is.dev) {
+    autoUpdater.autoDownload = true
+    autoUpdater.autoInstallOnAppQuit = true
+
+    autoUpdater.on('checking-for-update', () => console.log('[updater] Checking for update…'))
+    autoUpdater.on('update-available', (info) => {
+      console.log(`[updater] Update available: ${info.version}`)
+      mainWindow?.webContents.send('update-status', {
+        status: 'available',
+        version: info.version
+      })
+    })
+    autoUpdater.on('update-not-available', (info) =>
+      console.log(`[updater] Up to date (${info.version})`)
+    )
+    autoUpdater.on('download-progress', (p) =>
+      console.log(`[updater] Downloading: ${Math.round(p.percent)}%`)
+    )
+    autoUpdater.on('update-downloaded', (info) => {
+      console.log(`[updater] Update downloaded: ${info.version} — will install on quit`)
+      mainWindow?.webContents.send('update-status', {
+        status: 'ready',
+        version: info.version
+      })
+    })
+    autoUpdater.on('error', (err) => console.error('[updater] Error:', err.message))
+
     autoUpdater.checkForUpdatesAndNotify()
   }
 

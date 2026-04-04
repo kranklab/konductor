@@ -4,6 +4,8 @@ import type { SessionInfo } from '../main/sessionManager'
 import type { PersistedState } from '../main/store'
 import type { WorktreeInfo, BranchDetail } from '../main/worktree'
 
+export type UpdateStatus = { status: 'available' | 'ready'; version: string }
+
 export interface KonductorAPI {
   loadState: () => Promise<PersistedState>
   saveState: (state: PersistedState) => Promise<void>
@@ -36,6 +38,8 @@ export interface KonductorAPI {
   deleteBranch: (cwd: string, branch: string, force: boolean) => Promise<void>
   deleteRemoteBranch: (cwd: string, remote: string, branch: string) => Promise<void>
   fetchPrune: (cwd: string) => Promise<void>
+  onUpdateStatus: (cb: (status: UpdateStatus) => void) => () => void
+  installUpdate: () => void
 }
 
 const api: KonductorAPI = {
@@ -109,7 +113,16 @@ const api: KonductorAPI = {
     ipcRenderer.invoke('delete-branch', cwd, branch, force),
   deleteRemoteBranch: (cwd: string, remote: string, branch: string) =>
     ipcRenderer.invoke('delete-remote-branch', cwd, remote, branch),
-  fetchPrune: (cwd: string) => ipcRenderer.invoke('fetch-prune', cwd)
+  fetchPrune: (cwd: string) => ipcRenderer.invoke('fetch-prune', cwd),
+
+  onUpdateStatus: (cb: (status: UpdateStatus) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, status: UpdateStatus): void => {
+      cb(status)
+    }
+    ipcRenderer.on('update-status', handler)
+    return () => ipcRenderer.removeListener('update-status', handler)
+  },
+  installUpdate: () => ipcRenderer.send('install-update')
 }
 
 if (process.contextIsolated) {
