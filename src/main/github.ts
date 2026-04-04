@@ -1,34 +1,7 @@
 import { execFile } from 'child_process'
+import type { GitHubRepo, GitHubPR, GitHubIssue } from '../shared/types'
 
-export interface GitHubRepo {
-  owner: string
-  repo: string
-}
-
-export interface GitHubPR {
-  number: number
-  title: string
-  state: 'open' | 'closed' | 'merged'
-  author: string
-  branch: string
-  labels: string[]
-  statusCheck: string
-  url: string
-  createdAt: string
-  updatedAt: string
-}
-
-export interface GitHubIssue {
-  number: number
-  title: string
-  state: 'open' | 'closed'
-  author: string
-  labels: string[]
-  assignees: string[]
-  url: string
-  createdAt: string
-  updatedAt: string
-}
+export type { GitHubRepo, GitHubPR, GitHubIssue }
 
 export function getGitHubRepo(cwd: string): Promise<GitHubRepo | null> {
   return new Promise((resolve) => {

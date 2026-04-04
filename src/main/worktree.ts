@@ -1,6 +1,10 @@
 import { execFile } from 'child_process'
 import { join } from 'path'
 import { mkdir } from 'fs/promises'
+import type { WorktreeInfo, BranchDetail, PrInfo, PrState, BranchFile } from '../shared/types'
+
+export type { WorktreeInfo, BranchDetail, BranchFile }
+export type { PrState, PrInfo } from '../shared/types'
 
 function git(args: string[], cwd: string): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -15,12 +19,6 @@ function getDefaultBranch(cwd: string): Promise<string> {
   return git(['symbolic-ref', 'refs/remotes/origin/HEAD'], cwd)
     .then((ref) => ref.replace('refs/remotes/origin/', ''))
     .catch(() => 'main')
-}
-
-export interface WorktreeInfo {
-  path: string
-  branch: string
-  isMain: boolean
 }
 
 export function listWorktrees(cwd: string): Promise<WorktreeInfo[]> {
@@ -132,28 +130,6 @@ export function listBranches(cwd: string): Promise<string[]> {
   })
 }
 
-export type PrState = 'open' | 'merged' | 'closed' | 'none'
-
-export interface PrInfo {
-  state: PrState
-  number: number
-  url: string
-}
-
-export interface BranchDetail {
-  name: string
-  isHead: boolean
-  upstream: string
-  gone: boolean
-  lastCommitDate: string
-  lastCommitRelative: string
-  lastCommitSubject: string
-  worktreePath: string
-  aheadCount: number
-  dirty: boolean
-  pr: PrInfo
-}
-
 function getAheadCount(cwd: string, branch: string, mainBranch: string): Promise<number> {
   return new Promise((resolve) => {
     execFile('git', ['rev-list', '--count', `${mainBranch}..${branch}`], { cwd }, (err, stdout) => {
@@ -166,7 +142,7 @@ function getAheadCount(cwd: string, branch: string, mainBranch: string): Promise
   })
 }
 
-const NO_PR: PrInfo = { state: 'none', number: 0, url: '' }
+const NO_PR: PrInfo = { state: 'none' as const, number: 0, url: '' }
 
 function getPrStatus(cwd: string, branch: string): Promise<PrInfo> {
   return new Promise((resolve) => {
@@ -222,17 +198,41 @@ function isWorktreeDirty(worktreePath: string): Promise<boolean> {
   })
 }
 
+/** Parse a single line of NUL-delimited git branch output. */
+export function parseBranchLine(line: string): {
+  name: string
+  head: string
+  upstream: string
+  track: string
+  date: string
+  relative: string
+  subject: string
+} | null {
+  const parts = line.split('\0')
+  if (parts.length !== 7) return null
+  return {
+    name: parts[0],
+    head: parts[1],
+    upstream: parts[2],
+    track: parts[3],
+    date: parts[4],
+    relative: parts[5],
+    subject: parts[6]
+  }
+}
+
 export function getBranchDetails(cwd: string): Promise<BranchDetail[]> {
   return new Promise((resolve, reject) => {
+    const SEP = '%x00'
     const format = [
-      '{"name":"%(refname:short)"',
-      '"head":"%(HEAD)"',
-      '"upstream":"%(upstream:short)"',
-      '"track":"%(upstream:track)"',
-      '"date":"%(committerdate:iso8601)"',
-      '"relative":"%(committerdate:relative)"',
-      '"subject":"%(subject)"}'
-    ].join(',')
+      '%(refname:short)',
+      '%(HEAD)',
+      '%(upstream:short)',
+      '%(upstream:track)',
+      '%(committerdate:iso8601)',
+      '%(committerdate:relative)',
+      '%(subject)'
+    ].join(SEP)
 
     execFile(
       'git',
@@ -258,7 +258,8 @@ export function getBranchDetails(cwd: string): Promise<BranchDetail[]> {
           .trim()
           .split('\n')
           .filter((line) => line.length > 0)
-          .map((line) => JSON.parse(line))
+          .map((line) => parseBranchLine(line))
+          .filter((obj) => obj !== null)
 
         const branches: BranchDetail[] = await Promise.all(
           parsed.map(async (obj) => {
@@ -292,12 +293,6 @@ export function getBranchDetails(cwd: string): Promise<BranchDetail[]> {
       }
     )
   })
-}
-
-export interface BranchFile {
-  path: string
-  status: 'A' | 'M' | 'D' | 'R' | 'U'
-  source: 'committed' | 'uncommitted'
 }
 
 /** List files changed on a branch (committed vs origin/main + uncommitted in worktree) */

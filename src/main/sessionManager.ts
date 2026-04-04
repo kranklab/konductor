@@ -7,6 +7,8 @@ import * as nodePty from 'node-pty'
 import { BrowserWindow } from 'electron'
 import { is } from '@electron-toolkit/utils'
 import { createFileWatcher, FileWatcher } from './fileWatcher'
+import { shellQuote } from './shellEscape'
+import { ScrollbackBuffer } from './ringBuffer'
 
 const DEV_PLUGIN_PATH = join(__dirname, '../../claude-code-plugin')
 const STATE_DIR = join(tmpdir(), 'konductor-state')
@@ -21,8 +23,7 @@ export interface SessionEntry {
   cwd: string
   claudeSessionId: string
   watcher: FileWatcher
-  scrollback: string[]
-  scrollbackSize: number
+  scrollback: ScrollbackBuffer
   alive: boolean
 }
 
@@ -84,7 +85,7 @@ function getEnv(): Record<string, string> {
 function getProjectEnv(envScript: string, cwd?: string): Record<string, string> {
   try {
     const shell = getShell()
-    const raw = execFileSync(shell, ['-lc', `source ${JSON.stringify(envScript)} && env`], {
+    const raw = execFileSync(shell, ['-lc', `source ${shellQuote(envScript)} && env`], {
       encoding: 'utf-8',
       cwd
     })
@@ -162,20 +163,12 @@ export function createSession(
     cwd,
     claudeSessionId,
     watcher: createFileWatcher(id, cwd, window),
-    scrollback: [],
-    scrollbackSize: 0,
+    scrollback: new ScrollbackBuffer(MAX_SCROLLBACK_BYTES),
     alive: true
   }
 
   pty.onData((data) => {
-    // Buffer output for HMR replay
     entry.scrollback.push(data)
-    entry.scrollbackSize += data.length
-    // Trim oldest chunks if over budget
-    while (entry.scrollbackSize > MAX_SCROLLBACK_BYTES && entry.scrollback.length > 1) {
-      entry.scrollbackSize -= entry.scrollback[0].length
-      entry.scrollback.shift()
-    }
 
     if (!window.isDestroyed()) {
       window.webContents.send('pty-output', { sessionId: id, data })
@@ -213,7 +206,7 @@ export function listSessions(): SessionInfo[] {
 
 export function getSessionScrollback(sessionId: string): string {
   const entry = sessions.get(sessionId)
-  return entry ? entry.scrollback.join('') : ''
+  return entry ? entry.scrollback.join() : ''
 }
 
 export function writeToSession(sessionId: string, data: string): void {
@@ -233,22 +226,30 @@ export function resizeSession(sessionId: string, cols: number, rows: number): vo
 export function killSession(sessionId: string): void {
   const entry = sessions.get(sessionId)
   if (entry) {
-    entry.pty.kill()
+    // Clean up before pty.kill() so the onExit callback (which also
+    // tries to clean up) finds the session already removed and no-ops.
+    entry.alive = false
     entry.watcher.close()
     sessions.delete(sessionId)
+    entry.pty.kill()
   }
 }
 
 export function killAllSessions(): void {
   for (const [id, entry] of sessions) {
-    entry.pty.kill()
+    entry.alive = false
     entry.watcher.close()
     sessions.delete(id)
+    entry.pty.kill()
   }
 }
 
 export function getSessionCwd(sessionId: string): string | undefined {
   return sessions.get(sessionId)?.cwd
+}
+
+export function getAllSessionCwds(): string[] {
+  return [...sessions.values()].map((s) => s.cwd)
 }
 
 export function getSessionChanges(sessionId: string): import('./fileWatcher').ChangedFile[] {
