@@ -88,7 +88,15 @@ export default function FocusView({
           <div className="w-px h-4 bg-surface-border" />
           <div className="flex items-center gap-2">
             <div
-              className={`w-2 h-2 rounded-full ${session.alive ? 'bg-green-400' : 'bg-red-400'}`}
+              className={`w-2 h-2 rounded-full ${
+                !session.alive
+                  ? 'bg-red-400'
+                  : session.activity === 'working'
+                    ? 'bg-green-400 animate-pulse'
+                    : session.activity === 'waiting'
+                      ? 'bg-amber-400'
+                      : 'bg-green-400'
+              }`}
             />
             <span className="text-sm text-gray-300">{session.title}</span>
             <span className="text-xs text-gray-500">{session.cwd}</span>

@@ -1,0 +1,10 @@
+{
+  "name": "konductor",
+  "version": "0.1.0",
+  "description": "Reports busy/idle state from Claude Code sessions to the Konductor host app.",
+  "author": {
+    "name": "kranklab"
+  },
+  "repository": "https://github.com/kranklab/konductor",
+  "license": "MIT"
+}

@@ -95,7 +95,13 @@ export default function SessionTile({
         <div className="flex items-center gap-2 min-w-0">
           <div
             className={`w-2 h-2 rounded-full shrink-0 ${
-              session.alive ? 'bg-green-400' : 'bg-red-400'
+              !session.alive
+                ? 'bg-red-400'
+                : session.activity === 'working'
+                  ? 'bg-green-400 animate-pulse'
+                  : session.activity === 'waiting'
+                    ? 'bg-amber-400'
+                    : 'bg-green-400'
             }`}
           />
           <span className="text-xs text-gray-400 truncate">{session.title}</span>

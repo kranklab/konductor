@@ -1,8 +1,13 @@
 import { randomUUID } from 'crypto'
 import { execFileSync } from 'child_process'
+import { tmpdir } from 'os'
+import { join } from 'path'
 import * as nodePty from 'node-pty'
 import { BrowserWindow } from 'electron'
 import { createFileWatcher, FileWatcher } from './fileWatcher'
+
+const PLUGIN_PATH = join(__dirname, '../../claude-code-plugin')
+const STATE_DIR = join(tmpdir(), 'konductor-state')
 
 const MAX_SCROLLBACK_BYTES = 256 * 1024 // 256KB per session
 
@@ -78,15 +83,15 @@ function spawnClaude(
   resume: boolean
 ): nodePty.IPty {
   const args = resume
-    ? ['--resume', claudeSessionId]
-    : ['--session-id', claudeSessionId, '--name', name]
+    ? ['--resume', claudeSessionId, '--plugin-dir', PLUGIN_PATH]
+    : ['--session-id', claudeSessionId, '--name', name, '--plugin-dir', PLUGIN_PATH]
 
   return nodePty.spawn(getClaudePath(), args, {
     name: 'xterm-256color',
     cols: 80,
     rows: 24,
     cwd,
-    env: getEnv()
+    env: { ...getEnv(), KONDUCTOR_STATE_DIR: STATE_DIR }
   })
 }
 
@@ -200,3 +205,5 @@ export function getSessionChanges(sessionId: string): import('./fileWatcher').Ch
   const entry = sessions.get(sessionId)
   return entry?.watcher.getChanges() ?? []
 }
+
+export { STATE_DIR as sessionStateDir }

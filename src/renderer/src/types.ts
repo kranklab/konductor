@@ -8,6 +8,8 @@ export interface Project {
   cwd: string
 }
 
+export type ActivityState = 'working' | 'waiting' | 'ready'
+
 export interface Session {
   id: string
   projectId: string
@@ -16,6 +18,7 @@ export interface Session {
   terminal: Terminal
   alive: boolean
   claudeSessionId: string
+  activity: ActivityState
 }
 
 export interface ChangedFile {
