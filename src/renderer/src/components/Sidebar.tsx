@@ -23,6 +23,7 @@ interface SidebarProps {
   onNewProject: () => void
   onNewSession: (projectId: string) => void
   onRemoveProject: (id: string) => void
+  onUpdateProject: (id: string, updates: Partial<Project>) => void
   onShowBranches: () => void
   onShowGitHub: () => void
 }
@@ -39,6 +40,7 @@ export default function Sidebar({
   onNewProject,
   onNewSession,
   onRemoveProject,
+  onUpdateProject,
   onShowBranches,
   onShowGitHub
 }: SidebarProps): React.JSX.Element {
@@ -261,6 +263,40 @@ export default function Sidebar({
                   >
                     <span className="text-xs">+ session</span>
                   </button>
+
+                  {/* Env script */}
+                  <div className="flex items-center pl-3 pr-3 pt-2 pb-1">
+                    <span className="text-[10px] uppercase tracking-wider text-gray-600 flex-1">
+                      Env Script
+                    </span>
+                  </div>
+                  {project.envScript ? (
+                    <div className="flex items-center gap-1 pl-3 pr-3 py-1 group">
+                      <span
+                        className="text-[10px] text-gray-400 truncate flex-1"
+                        title={project.envScript}
+                      >
+                        {project.envScript.split('/').pop()}
+                      </span>
+                      <button
+                        onClick={() => onUpdateProject(project.id, { envScript: undefined })}
+                        className="text-gray-600 hover:text-red-400 text-[10px] opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                        title="Remove env script"
+                      >
+                        x
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={async () => {
+                        const path = await window.konductorAPI.selectFile('Select env script')
+                        if (path) onUpdateProject(project.id, { envScript: path })
+                      }}
+                      className="w-full flex items-center gap-2 pl-3 pr-3 py-1 text-left text-gray-600 hover:text-accent transition-colors"
+                    >
+                      <span className="text-xs">+ set script</span>
+                    </button>
+                  )}
 
                   {/* Branches & Worktrees section */}
                   <button

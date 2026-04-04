@@ -9,6 +9,7 @@ export interface ProjectData {
   id: string
   name: string
   cwd: string
+  envScript?: string
 }
 
 export interface SessionData {

@@ -110,10 +110,12 @@ export function useSessions() {
         const resumed: Session[] = []
         for (const meta of state.sessions) {
           try {
+            const sessionProject = state.projects.find((p) => p.id === meta.projectId)
             const { id } = await api.createSession(meta.cwd, {
               claudeSessionId: meta.claudeSessionId,
               name: meta.title,
-              resume: true
+              resume: true,
+              envScript: sessionProject?.envScript
             })
             if (cancelled) return
 
@@ -320,6 +322,10 @@ export function useSessions() {
     return project as Project
   }, [])
 
+  const updateProject = useCallback((projectId: string, updates: Partial<Project>) => {
+    setProjects((prev) => prev.map((p) => (p.id === projectId ? { ...p, ...updates } : p)))
+  }, [])
+
   const removeProject = useCallback((projectId: string) => {
     const projectSessions = sessionsRef.current.filter((s) => s.projectId === projectId)
     for (const session of projectSessions) {
@@ -342,8 +348,13 @@ export function useSessions() {
     async (projectId: string, cwd: string, branch?: string, prompt?: string) => {
       const sessionCount = sessionsRef.current.filter((s) => s.projectId === projectId).length
       const title = branch ? `${branch}` : `Session ${sessionCount + 1}`
+      const project = projects.find((p) => p.id === projectId)
 
-      const { id, claudeSessionId } = await api.createSession(cwd, { name: title, prompt })
+      const { id, claudeSessionId } = await api.createSession(cwd, {
+        name: title,
+        prompt,
+        envScript: project?.envScript
+      })
 
       const terminal = createTerminal()
       terminal.onData((data) => {
@@ -366,7 +377,7 @@ export function useSessions() {
       setActiveProjectId(projectId)
       return id
     },
-    []
+    [projects]
   )
 
   const killSession = useCallback((sessionId: string) => {
@@ -401,6 +412,7 @@ export function useSessions() {
     activeProjectId,
     setActiveProjectId,
     createProject,
+    updateProject,
     removeProject,
     sessions: projectSessions,
     allSessions: sessions,

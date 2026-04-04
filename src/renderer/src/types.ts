@@ -6,6 +6,7 @@ export interface Project {
   id: string
   name: string
   cwd: string
+  envScript?: string
 }
 
 export type ActivityState = 'working' | 'waiting' | 'ready'
