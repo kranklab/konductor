@@ -310,17 +310,21 @@ function VersionIndicator(): React.JSX.Element {
             ? 'text-accent hover:bg-accent/10 cursor-pointer'
             : 'text-yellow-400 cursor-default'
         }`}
-        title={isReady ? `Click to restart and update to ${update.version}` : `Downloading ${update.version}…`}
+        title={
+          isReady
+            ? `Click to restart and update to ${update.version}`
+            : `Downloading ${update.version}…`
+        }
       >
-        <span className={`w-1.5 h-1.5 rounded-full ${isReady ? 'bg-accent' : 'bg-yellow-400 animate-pulse'}`} />
+        <span
+          className={`w-1.5 h-1.5 rounded-full ${isReady ? 'bg-accent' : 'bg-yellow-400 animate-pulse'}`}
+        />
         <span>{isReady ? `Update to ${update.version}` : `Updating…`}</span>
       </button>
     )
   }
 
-  return (
-    <div className="text-[10px] text-gray-600 text-center py-0.5">v{__APP_VERSION__}</div>
-  )
+  return <div className="text-[10px] text-gray-600 text-center py-0.5">v{__APP_VERSION__}</div>
 }
 
 function ShortcutHelp(): React.JSX.Element {
