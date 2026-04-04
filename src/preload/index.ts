@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { ChangedFile } from '../main/fileWatcher'
+import type { ActivityState } from '../main/activityWatcher'
 import type { SessionInfo } from '../main/sessionManager'
 import type { PersistedState } from '../main/store'
 import type { WorktreeInfo, BranchDetail } from '../main/worktree'
@@ -40,6 +41,9 @@ export interface KonductorAPI {
   fetchPrune: (cwd: string) => Promise<void>
   onUpdateStatus: (cb: (status: UpdateStatus) => void) => () => void
   installUpdate: () => void
+  onSessionActivity: (
+    cb: (claudeSessionId: string, state: ActivityState, tool: string) => void
+  ) => () => void
 }
 
 const api: KonductorAPI = {
@@ -122,7 +126,20 @@ const api: KonductorAPI = {
     ipcRenderer.on('update-status', handler)
     return () => ipcRenderer.removeListener('update-status', handler)
   },
-  installUpdate: () => ipcRenderer.send('install-update')
+  installUpdate: () => ipcRenderer.send('install-update'),
+
+  onSessionActivity: (
+    cb: (claudeSessionId: string, state: ActivityState, tool: string) => void
+  ) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      payload: { claudeSessionId: string; state: ActivityState; tool: string }
+    ): void => {
+      cb(payload.claudeSessionId, payload.state, payload.tool)
+    }
+    ipcRenderer.on('session-activity', handler)
+    return () => ipcRenderer.removeListener('session-activity', handler)
+  }
 }
 
 if (process.contextIsolated) {

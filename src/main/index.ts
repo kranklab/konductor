@@ -20,6 +20,7 @@ import {
   getSessionChanges
 } from './sessionManager'
 import { loadState, saveState, type PersistedState } from './store'
+import { startActivityWatcher, stopActivityWatcher } from './activityWatcher'
 import {
   listWorktrees,
   createWorktree,
@@ -199,6 +200,7 @@ app.whenReady().then(() => {
   })
 
   createWindow()
+  startActivityWatcher(mainWindow!)
 
   if (!is.dev) {
     autoUpdater.autoDownload = true
@@ -236,6 +238,7 @@ app.whenReady().then(() => {
 })
 
 app.on('window-all-closed', () => {
+  stopActivityWatcher()
   killAllSessions()
   if (process.platform !== 'darwin') {
     app.quit()

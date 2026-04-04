@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Terminal } from '@xterm/xterm'
-import type { Project, Session } from '../types'
+import type { Project, Session, ActivityState } from '../types'
 import { TERM_THEME } from '../termTheme'
 
 import '@xterm/xterm/css/xterm.css'
@@ -127,7 +127,8 @@ export function useSessions() {
               title: meta.title,
               terminal,
               alive: true,
-              claudeSessionId: meta.claudeSessionId
+              claudeSessionId: meta.claudeSessionId,
+              activity: 'ready'
             })
           } catch {
             // Session resume failed — skip it
@@ -185,7 +186,8 @@ export function useSessions() {
           title: meta.title,
           terminal,
           alive: true,
-          claudeSessionId: meta.claudeSessionId
+          claudeSessionId: meta.claudeSessionId,
+          activity: 'ready'
         })
       }
 
@@ -288,9 +290,20 @@ export function useSessions() {
       })
     })
 
+    const unsubActivity = api.onSessionActivity(
+      (claudeSessionId: string, state: ActivityState) => {
+        setSessions((prev) =>
+          prev.map((s) =>
+            s.claudeSessionId === claudeSessionId ? { ...s, activity: state } : s
+          )
+        )
+      }
+    )
+
     return () => {
       unsubOutput()
       unsubExit()
+      unsubActivity()
     }
   }, [ready])
 
@@ -347,7 +360,8 @@ export function useSessions() {
       title,
       terminal,
       alive: true,
-      claudeSessionId
+      claudeSessionId,
+      activity: 'ready'
     }
 
     setSessions((prev) => [...prev, session])
