@@ -31,6 +31,7 @@ import {
   deleteRemoteBranch,
   fetchPrune
 } from './worktree'
+import { getGitHubRepo, listPullRequests, listIssues } from './github'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -188,6 +189,22 @@ app.whenReady().then(() => {
 
   ipcMain.on('install-update', () => {
     autoUpdater.quitAndInstall()
+  })
+
+  ipcMain.handle('get-github-repo', (_event, cwd: string) => {
+    return getGitHubRepo(cwd)
+  })
+
+  ipcMain.handle('list-pull-requests', (_event, cwd: string, state: string) => {
+    return listPullRequests(cwd, state as 'open' | 'closed' | 'merged' | 'all')
+  })
+
+  ipcMain.handle('list-issues', (_event, cwd: string, state: string) => {
+    return listIssues(cwd, state as 'open' | 'closed' | 'all')
+  })
+
+  ipcMain.handle('open-external', (_event, url: string) => {
+    return shell.openExternal(url)
   })
 
   ipcMain.handle('select-directory', async () => {

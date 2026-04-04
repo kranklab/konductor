@@ -338,33 +338,36 @@ export function useSessions() {
     })
   }, [])
 
-  const createSession = useCallback(async (projectId: string, cwd: string, branch?: string) => {
-    const sessionCount = sessionsRef.current.filter((s) => s.projectId === projectId).length
-    const title = branch ? `${branch}` : `Session ${sessionCount + 1}`
+  const createSession = useCallback(
+    async (projectId: string, cwd: string, branch?: string, prompt?: string) => {
+      const sessionCount = sessionsRef.current.filter((s) => s.projectId === projectId).length
+      const title = branch ? `${branch}` : `Session ${sessionCount + 1}`
 
-    const { id, claudeSessionId } = await api.createSession(cwd, { name: title })
+      const { id, claudeSessionId } = await api.createSession(cwd, { name: title, prompt })
 
-    const terminal = createTerminal()
-    terminal.onData((data) => {
-      api.writeToSession(id, data)
-    })
+      const terminal = createTerminal()
+      terminal.onData((data) => {
+        api.writeToSession(id, data)
+      })
 
-    const session: Session = {
-      id,
-      projectId,
-      cwd,
-      title,
-      terminal,
-      alive: true,
-      claudeSessionId,
-      activity: 'ready'
-    }
+      const session: Session = {
+        id,
+        projectId,
+        cwd,
+        title,
+        terminal,
+        alive: true,
+        claudeSessionId,
+        activity: 'ready'
+      }
 
-    setSessions((prev) => [...prev, session])
-    setActiveSessionId(id)
-    setActiveProjectId(projectId)
-    return id
-  }, [])
+      setSessions((prev) => [...prev, session])
+      setActiveSessionId(id)
+      setActiveProjectId(projectId)
+      return id
+    },
+    []
+  )
 
   const killSession = useCallback((sessionId: string) => {
     const session = sessionsRef.current.find((s) => s.id === sessionId)
