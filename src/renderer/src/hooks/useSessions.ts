@@ -25,6 +25,7 @@ interface SessionMeta {
   projectId: string
   cwd: string
   title: string
+  summary: string
   claudeSessionId: string
 }
 
@@ -127,6 +128,7 @@ export function useSessions() {
               projectId: meta.projectId,
               cwd: meta.cwd,
               title: meta.title,
+              summary: meta.summary ?? '',
               terminal,
               alive: true,
               claudeSessionId: meta.claudeSessionId,
@@ -186,6 +188,7 @@ export function useSessions() {
           projectId: meta.projectId,
           cwd: meta.cwd,
           title: meta.title,
+          summary: meta.summary ?? '',
           terminal,
           alive: true,
           claudeSessionId: meta.claudeSessionId,
@@ -219,6 +222,7 @@ export function useSessions() {
         projectId: s.projectId,
         cwd: s.cwd,
         title: s.title,
+        summary: s.summary,
         claudeSessionId: s.claudeSessionId
       })),
       activeSessionIndex: activeIdx >= 0 ? activeIdx : null
@@ -254,6 +258,7 @@ export function useSessions() {
             projectId: s.projectId,
             cwd: s.cwd,
             title: s.title,
+            summary: s.summary,
             claudeSessionId: s.claudeSessionId
           })),
           activeSessionId: r.activeSessionId()
@@ -292,11 +297,20 @@ export function useSessions() {
       })
     })
 
-    const unsubActivity = api.onSessionActivity((claudeSessionId: string, state: ActivityState) => {
-      setSessions((prev) =>
-        prev.map((s) => (s.claudeSessionId === claudeSessionId ? { ...s, activity: state } : s))
-      )
-    })
+    const unsubActivity = api.onSessionActivity(
+      (claudeSessionId: string, state: ActivityState, _tool: string, summary: string) => {
+        setSessions((prev) =>
+          prev.map((s) => {
+            if (s.claudeSessionId !== claudeSessionId) return s
+            const updates: Partial<Session> = { activity: state }
+            // Only auto-set summary if the session doesn't already have one
+            // (preserves manual edits and avoids overwriting with later responses)
+            if (summary && !s.summary) updates.summary = summary
+            return { ...s, ...updates }
+          })
+        )
+      }
+    )
 
     return () => {
       unsubOutput()
@@ -366,6 +380,7 @@ export function useSessions() {
         projectId,
         cwd,
         title,
+        summary: '',
         terminal,
         alive: true,
         claudeSessionId,
@@ -396,6 +411,10 @@ export function useSessions() {
     }
   }, [])
 
+  const updateSessionSummary = useCallback((sessionId: string, summary: string) => {
+    setSessions((prev) => prev.map((s) => (s.id === sessionId ? { ...s, summary } : s)))
+  }, [])
+
   const resizeSession = useCallback((sessionId: string, cols: number, rows: number) => {
     api.resizeSession(sessionId, cols, rows)
   }, [])
@@ -421,7 +440,8 @@ export function useSessions() {
     setActiveSessionId,
     createSession,
     killSession,
-    resizeSession
+    resizeSession,
+    updateSessionSummary
   }
 }
 

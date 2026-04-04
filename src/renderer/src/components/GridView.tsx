@@ -14,6 +14,7 @@ interface GridViewProps {
   onFocusSession: (id: string) => void
   onCloseSession: (id: string) => void
   onResizeSession: (id: string, cols: number, rows: number) => void
+  onUpdateSummary: (id: string, summary: string) => void
   onNewSession: () => void
   onNewProject: () => void
 }
@@ -28,6 +29,7 @@ export default function GridView({
   onFocusSession,
   onCloseSession,
   onResizeSession,
+  onUpdateSummary,
   onNewSession,
   onNewProject
 }: GridViewProps): React.JSX.Element {
@@ -109,6 +111,7 @@ export default function GridView({
             onFocus={() => onFocusSession(session.id)}
             onClose={() => onCloseSession(session.id)}
             onResize={(cols, rows) => onResizeSession(session.id, cols, rows)}
+            onUpdateSummary={(summary) => onUpdateSummary(session.id, summary)}
           />
         ))}
 

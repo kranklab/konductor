@@ -16,6 +16,7 @@ export interface Session {
   projectId: string
   cwd: string
   title: string
+  summary: string
   terminal: Terminal
   alive: boolean
   claudeSessionId: string

@@ -37,7 +37,8 @@ function App(): React.JSX.Element {
     setActiveSessionId,
     createSession,
     killSession,
-    resizeSession
+    resizeSession,
+    updateSessionSummary
   } = useSessions()
 
   // Worktree modal state: stores projectId when modal is open
@@ -310,6 +311,7 @@ function App(): React.JSX.Element {
             onFocusSession={handleFocusSession}
             onCloseSession={handleCloseSession}
             onResizeSession={handleResizeSession}
+            onUpdateSummary={updateSessionSummary}
             onNewSession={handleNewSession}
             onNewProject={handleNewProject}
           />
@@ -322,6 +324,7 @@ function App(): React.JSX.Element {
             onShowChanges={() => setViewMode('changes')}
             onClose={() => handleCloseSession(activeSession.id)}
             onResize={(cols, rows) => handleResizeSession(activeSession.id, cols, rows)}
+            onUpdateSummary={(summary) => updateSessionSummary(activeSession.id, summary)}
           />
         )}
 
