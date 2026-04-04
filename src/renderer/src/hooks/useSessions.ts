@@ -290,15 +290,11 @@ export function useSessions() {
       })
     })
 
-    const unsubActivity = api.onSessionActivity(
-      (claudeSessionId: string, state: ActivityState) => {
-        setSessions((prev) =>
-          prev.map((s) =>
-            s.claudeSessionId === claudeSessionId ? { ...s, activity: state } : s
-          )
-        )
-      }
-    )
+    const unsubActivity = api.onSessionActivity((claudeSessionId: string, state: ActivityState) => {
+      setSessions((prev) =>
+        prev.map((s) => (s.claudeSessionId === claudeSessionId ? { ...s, activity: state } : s))
+      )
+    })
 
     return () => {
       unsubOutput()
