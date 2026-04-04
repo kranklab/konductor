@@ -27,6 +27,7 @@ export function startActivityWatcher(window: BrowserWindow): void {
             claudeSessionId,
             state: data.state as ActivityState,
             tool: data.tool || '',
+            summary: data.summary || '',
             timestamp: data.timestamp
           })
         }

@@ -47,10 +47,11 @@ export interface KonductorAPI {
   deleteBranch: (cwd: string, branch: string, force: boolean) => Promise<void>
   deleteRemoteBranch: (cwd: string, remote: string, branch: string) => Promise<void>
   fetchPrune: (cwd: string) => Promise<void>
+  generateSummary: (cwd: string, claudeSessionId: string) => Promise<string>
   onUpdateStatus: (cb: (status: UpdateStatus) => void) => () => void
   installUpdate: () => void
   onSessionActivity: (
-    cb: (claudeSessionId: string, state: ActivityState, tool: string) => void
+    cb: (claudeSessionId: string, state: ActivityState, tool: string, summary: string) => void
   ) => () => void
   getGitHubRepo: (cwd: string) => Promise<GitHubRepo | null>
   listPullRequests: (cwd: string, state: string) => Promise<GitHubPR[]>
@@ -146,6 +147,9 @@ const api: KonductorAPI = {
     ipcRenderer.invoke('delete-remote-branch', cwd, remote, branch),
   fetchPrune: (cwd: string) => ipcRenderer.invoke('fetch-prune', cwd),
 
+  generateSummary: (cwd: string, claudeSessionId: string) =>
+    ipcRenderer.invoke('generate-summary', cwd, claudeSessionId),
+
   onUpdateStatus: (cb: (status: UpdateStatus) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, status: UpdateStatus): void => {
       cb(status)
@@ -156,13 +160,13 @@ const api: KonductorAPI = {
   installUpdate: () => ipcRenderer.send('install-update'),
 
   onSessionActivity: (
-    cb: (claudeSessionId: string, state: ActivityState, tool: string) => void
+    cb: (claudeSessionId: string, state: ActivityState, tool: string, summary: string) => void
   ) => {
     const handler = (
       _event: Electron.IpcRendererEvent,
-      payload: { claudeSessionId: string; state: ActivityState; tool: string }
+      payload: { claudeSessionId: string; state: ActivityState; tool: string; summary: string }
     ): void => {
-      cb(payload.claudeSessionId, payload.state, payload.tool)
+      cb(payload.claudeSessionId, payload.state, payload.tool, payload.summary || '')
     }
     ipcRenderer.on('session-activity', handler)
     return () => ipcRenderer.removeListener('session-activity', handler)

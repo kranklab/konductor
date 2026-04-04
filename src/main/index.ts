@@ -6,7 +6,8 @@ if (process.platform === 'linux') {
 }
 import { execFile } from 'child_process'
 import { join } from 'path'
-import { readFile } from 'fs/promises'
+import { readFile, access } from 'fs/promises'
+import { homedir } from 'os'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import {
@@ -17,7 +18,9 @@ import {
   resizeSession,
   killSession,
   killAllSessions,
-  getSessionChanges
+  getSessionChanges,
+  getClaudePath,
+  getEnv
 } from './sessionManager'
 import { loadState, saveState, type PersistedState } from './store'
 import { startActivityWatcher, stopActivityWatcher } from './activityWatcher'
@@ -123,6 +126,73 @@ app.whenReady().then(() => {
   ipcMain.handle('get-scrollback', (_event, sessionId: string) => {
     return getSessionScrollback(sessionId)
   })
+
+  ipcMain.handle(
+    'generate-summary',
+    async (_event, cwd: string, claudeSessionId: string): Promise<string> => {
+      // Read the transcript to build conversation context for summarization
+      const pathKey = cwd.replace(/[/.]/g, '-')
+      const transcriptPath = join(
+        homedir(),
+        '.claude',
+        'projects',
+        pathKey,
+        `${claudeSessionId}.jsonl`
+      )
+
+      let context = ''
+      try {
+        await access(transcriptPath)
+        const raw = await readFile(transcriptPath, 'utf-8')
+        // Extract the first few user and assistant messages as context
+        const snippets: string[] = []
+        for (const line of raw.trim().split('\n')) {
+          try {
+            const entry = JSON.parse(line)
+            if (entry.type !== 'user' && entry.type !== 'assistant') continue
+            const content = entry.message?.content
+            if (!content) continue
+            const text = Array.isArray(content)
+              ? content
+                  .filter((b: { type: string }) => b.type === 'text')
+                  .map((b: { text: string }) => b.text)
+                  .join(' ')
+              : typeof entry.message === 'string'
+                ? entry.message
+                : ''
+            if (!text) continue
+            snippets.push(`${entry.type}: ${text.slice(0, 500)}`)
+            if (snippets.length >= 6) break
+          } catch {
+            // skip malformed lines
+          }
+        }
+        context = snippets.join('\n\n')
+      } catch {
+        // Transcript not available
+      }
+
+      if (!context) return ''
+
+      // Call claude CLI in print mode to generate a summary
+      const prompt = `Summarize this Claude Code session in one short sentence (max 120 chars). Describe WHAT is being worked on, not HOW. No quotes or prefixes.\n\nConversation:\n${context}`
+
+      return new Promise<string>((resolve) => {
+        execFile(
+          getClaudePath(),
+          ['-p', '--model', 'claude-haiku-4-5-20251001', prompt],
+          { env: getEnv(), timeout: 15000 },
+          (err, stdout) => {
+            if (err || !stdout) {
+              resolve('')
+              return
+            }
+            resolve(stdout.trim().slice(0, 200))
+          }
+        )
+      })
+    }
+  )
 
   ipcMain.handle('get-changes', (_event, sessionId: string) => {
     return getSessionChanges(sessionId)

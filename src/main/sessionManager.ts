@@ -245,4 +245,4 @@ export function getSessionChanges(sessionId: string): import('./fileWatcher').Ch
   return entry?.watcher.getChanges() ?? []
 }
 
-export { STATE_DIR as sessionStateDir }
+export { STATE_DIR as sessionStateDir, getClaudePath, getEnv }

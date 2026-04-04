@@ -16,6 +16,7 @@ export interface SessionData {
   projectId: string
   cwd: string
   title: string
+  summary: string
   claudeSessionId: string
 }
 
