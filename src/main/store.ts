@@ -26,6 +26,7 @@ export interface PersistedState {
   nextProjectId: number
   sessions: SessionData[]
   activeSessionIndex: number | null
+  gridCols?: 1 | 2
 }
 
 const DEFAULT_STATE: PersistedState = {
@@ -33,7 +34,8 @@ const DEFAULT_STATE: PersistedState = {
   activeProjectId: null,
   nextProjectId: 1,
   sessions: [],
-  activeSessionIndex: null
+  activeSessionIndex: null,
+  gridCols: 2
 }
 
 export async function loadState(): Promise<PersistedState> {
@@ -45,7 +47,8 @@ export async function loadState(): Promise<PersistedState> {
       activeProjectId: parsed.activeProjectId ?? null,
       nextProjectId: typeof parsed.nextProjectId === 'number' ? parsed.nextProjectId : 1,
       sessions: Array.isArray(parsed.sessions) ? parsed.sessions : [],
-      activeSessionIndex: parsed.activeSessionIndex ?? null
+      activeSessionIndex: parsed.activeSessionIndex ?? null,
+      gridCols: parsed.gridCols === 1 ? 1 : 2
     }
   } catch {
     return { ...DEFAULT_STATE }

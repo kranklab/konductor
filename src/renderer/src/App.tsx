@@ -3,7 +3,7 @@ import type { ViewMode, Session } from './types'
 import { useSessions } from './hooks/useSessions'
 import { useFileChanges } from './hooks/useFileChanges'
 import Sidebar from './components/Sidebar'
-import GridView, { type GridCols } from './components/GridView'
+import GridView from './components/GridView'
 import FocusView from './components/FocusView'
 import ChangesView from './components/ChangesView'
 import WorktreeModal from './components/WorktreeModal'
@@ -14,7 +14,6 @@ const savedViewMode = import.meta.hot?.data?.viewMode as ViewMode | undefined
 
 function App(): React.JSX.Element {
   const [viewMode, setViewMode] = useState<ViewMode>(savedViewMode ?? 'grid')
-  const [gridCols, setGridCols] = useState<GridCols>(2)
 
   useEffect(() => {
     if (!import.meta.hot) return
@@ -38,7 +37,9 @@ function App(): React.JSX.Element {
     createSession,
     killSession,
     resizeSession,
-    updateSessionSummary
+    updateSessionSummary,
+    gridCols,
+    setGridCols
   } = useSessions()
 
   // Worktree modal state: stores projectId when modal is open

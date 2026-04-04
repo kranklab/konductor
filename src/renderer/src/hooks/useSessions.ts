@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Terminal } from '@xterm/xterm'
 import type { Project, Session, ActivityState } from '../types'
+import type { GridCols } from '../components/GridView'
 import { TERM_THEME } from '../termTheme'
 
 import '@xterm/xterm/css/xterm.css'
@@ -34,6 +35,7 @@ interface HmrState {
   activeProjectId: string | null
   sessionMeta: SessionMeta[]
   activeSessionId: string | null
+  gridCols?: 1 | 2
 }
 
 // Captured once at module load time. Consumed by the first mount of useSessions().
@@ -81,6 +83,7 @@ export function useSessions() {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(
     initialHmrState?.activeSessionId ?? null
   )
+  const [gridCols, setGridCols] = useState<GridCols>(initialHmrState?.gridCols ?? 2)
   // `ready` gates BOTH the save-to-disk effect and the PTY listener subscription.
   // It becomes true only after all async initialization (disk load OR HMR restore) completes.
   const [ready, setReady] = useState(false)
@@ -104,6 +107,9 @@ export function useSessions() {
       }
       if (state.activeProjectId) {
         setActiveProjectId(state.activeProjectId)
+      }
+      if (state.gridCols) {
+        setGridCols(state.gridCols)
       }
 
       // Resume persisted sessions
@@ -225,9 +231,10 @@ export function useSessions() {
         summary: s.summary,
         claudeSessionId: s.claudeSessionId
       })),
-      activeSessionIndex: activeIdx >= 0 ? activeIdx : null
+      activeSessionIndex: activeIdx >= 0 ? activeIdx : null,
+      gridCols
     })
-  }, [projects, activeProjectId, sessions, activeSessionId, ready])
+  }, [projects, activeProjectId, sessions, activeSessionId, gridCols, ready])
 
   // ─── HMR: save state before module disposal (register once) ────────
   useEffect(() => {
@@ -239,7 +246,8 @@ export function useSessions() {
       projects: () => projects,
       activeProjectId: () => activeProjectId,
       activeSessionId: () => activeSessionId,
-      sessions: () => sessionsRef.current
+      sessions: () => sessionsRef.current,
+      gridCols: () => gridCols
     }
 
     // Update the closures each render
@@ -261,7 +269,8 @@ export function useSessions() {
             summary: s.summary,
             claudeSessionId: s.claudeSessionId
           })),
-          activeSessionId: r.activeSessionId()
+          activeSessionId: r.activeSessionId(),
+          gridCols: r.gridCols()
         } satisfies HmrState
 
         for (const s of r.sessions()) {
@@ -441,7 +450,9 @@ export function useSessions() {
     createSession,
     killSession,
     resizeSession,
-    updateSessionSummary
+    updateSessionSummary,
+    gridCols,
+    setGridCols
   }
 }
 
@@ -453,6 +464,7 @@ interface HmrRefs {
   activeProjectId: () => string | null
   activeSessionId: () => string | null
   sessions: () => Session[]
+  gridCols: () => 1 | 2
 }
 const refs = { current: null as null | HmrRefs }
 const disposeRegistered = { current: false }
