@@ -388,10 +388,7 @@ function EnvScriptSection({
         })
       ) : project.envScript ? (
         <div className="flex items-center gap-1 pl-3 pr-3 py-1 group">
-          <span
-            className="text-[10px] text-gray-400 truncate flex-1"
-            title={project.envScript}
-          >
+          <span className="text-[10px] text-gray-400 truncate flex-1" title={project.envScript}>
             {selectedName}
           </span>
           <button
