@@ -1,35 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { Project } from '../types'
+import type { BranchDetail, WorktreeInfo } from '../../../shared/types'
+import { ChevronLeftIcon, RefreshIcon } from './Icons'
 
 const api = window.konductorAPI
-
-type PrState = 'open' | 'merged' | 'closed' | 'none'
-
-interface PrInfo {
-  state: PrState
-  number: number
-  url: string
-}
-
-interface BranchDetail {
-  name: string
-  isHead: boolean
-  upstream: string
-  gone: boolean
-  lastCommitDate: string
-  lastCommitRelative: string
-  lastCommitSubject: string
-  worktreePath: string
-  aheadCount: number
-  dirty: boolean
-  pr: PrInfo
-}
-
-interface WorktreeInfo {
-  path: string
-  branch: string
-  isMain: boolean
-}
 
 type Filter = 'all' | 'stale' | 'merged' | 'worktrees'
 
@@ -257,16 +231,7 @@ export default function BranchesView({ project, onBack }: BranchesViewProps): Re
           className="text-gray-500 hover:text-gray-300 transition-colors"
           title="Back to grid"
         >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-          >
-            <path d="M10 3L5 8l5 5" />
-          </svg>
+          <ChevronLeftIcon />
         </button>
         <h2 className="text-sm font-semibold text-gray-200">Branches & Worktrees</h2>
         <span className="text-xs text-gray-600">{project.name}</span>
@@ -291,17 +256,7 @@ export default function BranchesView({ project, onBack }: BranchesViewProps): Re
           className="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs bg-surface-raised border border-surface-border text-gray-400 hover:text-gray-200 hover:border-gray-500 disabled:opacity-40 transition-colors"
           title="git fetch --prune"
         >
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-          >
-            <path d="M2 8a6 6 0 0110.89-3.48M14 8a6 6 0 01-10.89 3.48" />
-            <path d="M14 2v4h-4M2 14v-4h4" />
-          </svg>
+          <RefreshIcon />
           {pruning ? 'Fetching...' : 'Fetch & Prune'}
         </button>
       </div>

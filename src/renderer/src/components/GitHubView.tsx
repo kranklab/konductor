@@ -1,32 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { Project } from '../types'
+import type { GitHubPR, GitHubIssue } from '../../../shared/types'
+import { ChevronLeftIcon, RefreshIcon } from './Icons'
 
 const api = window.konductorAPI
-
-interface GitHubPR {
-  number: number
-  title: string
-  state: 'open' | 'closed' | 'merged'
-  author: string
-  branch: string
-  labels: string[]
-  statusCheck: string
-  url: string
-  createdAt: string
-  updatedAt: string
-}
-
-interface GitHubIssue {
-  number: number
-  title: string
-  state: 'open' | 'closed'
-  author: string
-  labels: string[]
-  assignees: string[]
-  url: string
-  createdAt: string
-  updatedAt: string
-}
 
 type Tab = 'prs' | 'issues'
 type PRFilter = 'open' | 'closed' | 'merged' | 'all'
@@ -126,21 +103,24 @@ export default function GitHubView({
         loadIssues(issueFilter)
       }
     })
-  }, [project.cwd]) // eslint-disable-line react-hooks/exhaustive-deps
+    // Only re-run when the project changes — loadPRs/loadIssues/tab/filters
+    // are intentionally excluded because this is the initial-load effect.
+    // Filter-change effects below handle subsequent updates.
+  }, [project.cwd, loadRepo]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!repoInfo) return
     if (tab === 'prs') {
       loadPRs(prFilter)
     }
-  }, [prFilter]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [prFilter, loadPRs, repoInfo, tab])
 
   useEffect(() => {
     if (!repoInfo) return
     if (tab === 'issues') {
       loadIssues(issueFilter)
     }
-  }, [issueFilter]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [issueFilter, loadIssues, repoInfo, tab])
 
   const handleTabChange = useCallback(
     (newTab: Tab) => {
@@ -177,16 +157,7 @@ export default function GitHubView({
           className="text-gray-500 hover:text-gray-300 transition-colors"
           title="Back to grid"
         >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-          >
-            <path d="M10 3L5 8l5 5" />
-          </svg>
+          <ChevronLeftIcon />
         </button>
         <h2 className="text-sm font-semibold text-gray-200">GitHub</h2>
         <span className="text-xs text-gray-600">{project.name}</span>
@@ -203,17 +174,7 @@ export default function GitHubView({
           className="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs bg-surface-raised border border-surface-border text-gray-400 hover:text-gray-200 hover:border-gray-500 disabled:opacity-40 transition-colors"
           title="Refresh"
         >
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-          >
-            <path d="M2 8a6 6 0 0110.89-3.48M14 8a6 6 0 01-10.89 3.48" />
-            <path d="M14 2v4h-4M2 14v-4h4" />
-          </svg>
+          <RefreshIcon />
           {loading ? 'Loading...' : 'Refresh'}
         </button>
       </div>

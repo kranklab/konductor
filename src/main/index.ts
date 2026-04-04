@@ -19,10 +19,12 @@ import {
   killSession,
   killAllSessions,
   getSessionChanges,
+  getAllSessionCwds,
   getClaudePath,
   getEnv,
   ensurePluginInstalled
 } from './sessionManager'
+import { isPathWithinAllowedDirs } from './pathValidation'
 import { loadState, saveState, type PersistedState } from './store'
 import { startActivityWatcher, stopActivityWatcher } from './activityWatcher'
 import {
@@ -200,6 +202,10 @@ app.whenReady().then(() => {
   })
 
   ipcMain.handle('read-file', async (_event, filePath: string) => {
+    const allowedDirs = getAllSessionCwds()
+    if (!isPathWithinAllowedDirs(filePath, allowedDirs)) {
+      throw new Error('Access denied: path outside session working directories')
+    }
     const content = await readFile(filePath, 'utf-8')
     return content
   })

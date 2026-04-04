@@ -3,8 +3,8 @@ import type { ChangedFile } from '../main/fileWatcher'
 import type { ActivityState } from '../main/activityWatcher'
 import type { SessionInfo } from '../main/sessionManager'
 import type { PersistedState } from '../main/store'
-import type { WorktreeInfo, BranchDetail, BranchFile } from '../main/worktree'
-import type { GitHubRepo, GitHubPR, GitHubIssue } from '../main/github'
+import type { WorktreeInfo, BranchDetail, BranchFile } from '../shared/types'
+import type { GitHubRepo, GitHubPR, GitHubIssue } from '../shared/types'
 
 export type UpdateStatus = { status: 'available' | 'ready'; version: string }
 
