@@ -5,10 +5,14 @@ import { existsSync } from 'fs'
 import { join } from 'path'
 import * as nodePty from 'node-pty'
 import { BrowserWindow } from 'electron'
+import { is } from '@electron-toolkit/utils'
 import { createFileWatcher, FileWatcher } from './fileWatcher'
 
-const PLUGIN_PATH = join(__dirname, '../../claude-code-plugin')
+const DEV_PLUGIN_PATH = join(__dirname, '../../claude-code-plugin')
 const STATE_DIR = join(tmpdir(), 'konductor-state')
+
+const MARKETPLACE_REPO = 'kranklab/konductor'
+const MARKETPLACE_PLUGIN = 'konductor'
 
 const MAX_SCROLLBACK_BYTES = 256 * 1024 // 256KB per session
 
@@ -110,8 +114,14 @@ function spawnClaude(
   env?: Record<string, string>
 ): nodePty.IPty {
   const args = resume
-    ? ['--resume', claudeSessionId, '--plugin-dir', PLUGIN_PATH]
-    : ['--session-id', claudeSessionId, '--name', name, '--plugin-dir', PLUGIN_PATH]
+    ? ['--resume', claudeSessionId]
+    : ['--session-id', claudeSessionId, '--name', name]
+
+  // In dev, load the plugin from the local directory.
+  // In production, the plugin is installed from the GitHub marketplace.
+  if (is.dev) {
+    args.push('--plugin-dir', DEV_PLUGIN_PATH)
+  }
 
   if (prompt && !resume) {
     args.push('--prompt', prompt)
@@ -243,6 +253,32 @@ export function getSessionCwd(sessionId: string): string | undefined {
 export function getSessionChanges(sessionId: string): import('./fileWatcher').ChangedFile[] {
   const entry = sessions.get(sessionId)
   return entry?.watcher.getChanges() ?? []
+}
+
+/**
+ * Ensure the Konductor plugin is installed from the GitHub marketplace.
+ * Called once at app startup in production builds.
+ */
+export function ensurePluginInstalled(): void {
+  if (is.dev) return
+
+  const claude = getClaudePath()
+  const env = getEnv()
+  const opts = { encoding: 'utf-8' as const, env, timeout: 30000 }
+
+  try {
+    // Add the marketplace (idempotent — no-ops if already added)
+    execFileSync(claude, ['plugin', 'marketplace', 'add', MARKETPLACE_REPO], opts)
+  } catch (err) {
+    console.warn('[plugin] Failed to add marketplace:', (err as Error).message)
+  }
+
+  try {
+    // Install the plugin (idempotent — no-ops if already installed)
+    execFileSync(claude, ['plugin', 'install', MARKETPLACE_PLUGIN], opts)
+  } catch (err) {
+    console.warn('[plugin] Failed to install plugin:', (err as Error).message)
+  }
 }
 
 export { STATE_DIR as sessionStateDir, getClaudePath, getEnv }

@@ -20,7 +20,8 @@ import {
   killAllSessions,
   getSessionChanges,
   getClaudePath,
-  getEnv
+  getEnv,
+  ensurePluginInstalled
 } from './sessionManager'
 import { loadState, saveState, type PersistedState } from './store'
 import { startActivityWatcher, stopActivityWatcher } from './activityWatcher'
@@ -329,6 +330,7 @@ app.whenReady().then(() => {
 
   createWindow()
   startActivityWatcher(mainWindow!)
+  ensurePluginInstalled()
 
   if (!is.dev) {
     autoUpdater.autoDownload = true
