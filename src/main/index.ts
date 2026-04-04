@@ -29,7 +29,9 @@ import {
   getBranchDetails,
   deleteBranch,
   deleteRemoteBranch,
-  fetchPrune
+  fetchPrune,
+  getBranchFiles,
+  getBranchDiff
 } from './worktree'
 import { getGitHubRepo, listPullRequests, listIssues } from './github'
 
@@ -210,6 +212,27 @@ app.whenReady().then(() => {
   ipcMain.handle('open-external', (_event, url: string) => {
     return shell.openExternal(url)
   })
+
+  ipcMain.handle(
+    'get-branch-files',
+    (_event, cwd: string, branch: string, worktreePath: string) => {
+      return getBranchFiles(cwd, branch, worktreePath)
+    }
+  )
+
+  ipcMain.handle(
+    'get-branch-diff',
+    (
+      _event,
+      cwd: string,
+      branch: string,
+      filePath: string,
+      source: 'committed' | 'uncommitted',
+      worktreePath: string
+    ) => {
+      return getBranchDiff(cwd, branch, filePath, source, worktreePath)
+    }
+  )
 
   ipcMain.handle('select-directory', async () => {
     if (!mainWindow) return null

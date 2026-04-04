@@ -86,7 +86,7 @@ export function createFileWatcher(
 
   // Watch for FS changes to trigger git status refresh
   watcher = watch(cwd, {
-    ignored: ['**/.git/**', '**/node_modules/**'],
+    ignored: ['**/.git/**', '**/node_modules/**', '**/.konductor/**'],
     persistent: true,
     ignoreInitial: true,
     awaitWriteFinish: {

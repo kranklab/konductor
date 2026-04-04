@@ -3,7 +3,7 @@ import type { ChangedFile } from '../main/fileWatcher'
 import type { ActivityState } from '../main/activityWatcher'
 import type { SessionInfo } from '../main/sessionManager'
 import type { PersistedState } from '../main/store'
-import type { WorktreeInfo, BranchDetail } from '../main/worktree'
+import type { WorktreeInfo, BranchDetail, BranchFile } from '../main/worktree'
 import type { GitHubRepo, GitHubPR, GitHubIssue } from '../main/github'
 
 export type UpdateStatus = { status: 'available' | 'ready'; version: string }
@@ -56,6 +56,14 @@ export interface KonductorAPI {
   listPullRequests: (cwd: string, state: string) => Promise<GitHubPR[]>
   listIssues: (cwd: string, state: string) => Promise<GitHubIssue[]>
   openExternal: (url: string) => Promise<void>
+  getBranchFiles: (cwd: string, branch: string, worktreePath: string) => Promise<BranchFile[]>
+  getBranchDiff: (
+    cwd: string,
+    branch: string,
+    filePath: string,
+    source: 'committed' | 'uncommitted',
+    worktreePath: string
+  ) => Promise<string>
 }
 
 const api: KonductorAPI = {
@@ -163,7 +171,16 @@ const api: KonductorAPI = {
   listPullRequests: (cwd: string, state: string) =>
     ipcRenderer.invoke('list-pull-requests', cwd, state),
   listIssues: (cwd: string, state: string) => ipcRenderer.invoke('list-issues', cwd, state),
-  openExternal: (url: string) => ipcRenderer.invoke('open-external', url)
+  openExternal: (url: string) => ipcRenderer.invoke('open-external', url),
+  getBranchFiles: (cwd: string, branch: string, worktreePath: string) =>
+    ipcRenderer.invoke('get-branch-files', cwd, branch, worktreePath),
+  getBranchDiff: (
+    cwd: string,
+    branch: string,
+    filePath: string,
+    source: 'committed' | 'uncommitted',
+    worktreePath: string
+  ) => ipcRenderer.invoke('get-branch-diff', cwd, branch, filePath, source, worktreePath)
 }
 
 if (process.contextIsolated) {
