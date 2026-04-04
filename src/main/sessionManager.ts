@@ -77,11 +77,12 @@ function getEnv(): Record<string, string> {
   return cachedEnv
 }
 
-function getProjectEnv(envScript: string): Record<string, string> {
+function getProjectEnv(envScript: string, cwd?: string): Record<string, string> {
   try {
     const shell = getShell()
     const raw = execFileSync(shell, ['-lc', `source ${JSON.stringify(envScript)} && env`], {
-      encoding: 'utf-8'
+      encoding: 'utf-8',
+      cwd
     })
     const env: Record<string, string> = {}
     for (const line of raw.split('\n')) {
@@ -142,7 +143,7 @@ export function createSession(
   const name = opts?.name ?? `Session ${nextId - 1}`
   const resume = opts?.resume ?? false
   const envScript = opts?.envScript ?? detectEnvScript(cwd)
-  const env = envScript ? getProjectEnv(envScript) : undefined
+  const env = envScript ? getProjectEnv(envScript, cwd) : undefined
 
   const pty = spawnClaude(cwd, claudeSessionId, name, resume, opts?.prompt, env)
 
