@@ -265,38 +265,7 @@ export default function Sidebar({
                   </button>
 
                   {/* Env script */}
-                  <div className="flex items-center pl-3 pr-3 pt-2 pb-1">
-                    <span className="text-[10px] uppercase tracking-wider text-gray-600 flex-1">
-                      Env Script
-                    </span>
-                  </div>
-                  {project.envScript ? (
-                    <div className="flex items-center gap-1 pl-3 pr-3 py-1 group">
-                      <span
-                        className="text-[10px] text-gray-400 truncate flex-1"
-                        title={project.envScript}
-                      >
-                        {project.envScript.split('/').pop()}
-                      </span>
-                      <button
-                        onClick={() => onUpdateProject(project.id, { envScript: undefined })}
-                        className="text-gray-600 hover:text-red-400 text-[10px] opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                        title="Remove env script"
-                      >
-                        x
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={async () => {
-                        const path = await window.konductorAPI.selectFile('Select env script')
-                        if (path) onUpdateProject(project.id, { envScript: path })
-                      }}
-                      className="w-full flex items-center gap-2 pl-3 pr-3 py-1 text-left text-gray-600 hover:text-accent transition-colors"
-                    >
-                      <span className="text-xs">+ set script</span>
-                    </button>
-                  )}
+                  <EnvScriptSection project={project} onUpdateProject={onUpdateProject} />
 
                   {/* Branches & Worktrees section */}
                   <button
@@ -370,6 +339,77 @@ export default function Sidebar({
         <VersionIndicator />
       </div>
     </div>
+  )
+}
+
+function EnvScriptSection({
+  project,
+  onUpdateProject
+}: {
+  project: Project
+  onUpdateProject: (id: string, updates: Partial<Project>) => void
+}): React.JSX.Element {
+  const [discovered, setDiscovered] = useState<string[]>([])
+
+  useEffect(() => {
+    window.konductorAPI.listEnvScripts(project.cwd).then(setDiscovered)
+  }, [project.cwd])
+
+  const selectedName = project.envScript?.split('/').pop()
+
+  return (
+    <>
+      <div className="flex items-center pl-3 pr-3 pt-2 pb-1">
+        <span className="text-[10px] uppercase tracking-wider text-gray-600 flex-1">
+          Env Script
+        </span>
+      </div>
+      {discovered.length > 0 ? (
+        discovered.map((scriptPath) => {
+          const name = scriptPath.split('/').pop()!
+          const isSelected = project.envScript === scriptPath
+          return (
+            <div key={scriptPath} className="flex items-center gap-1 pl-3 pr-3 py-1 group">
+              <button
+                onClick={() =>
+                  onUpdateProject(project.id, {
+                    envScript: isSelected ? undefined : scriptPath
+                  })
+                }
+                className={`text-[10px] truncate flex-1 text-left ${
+                  isSelected ? 'text-accent' : 'text-gray-500 hover:text-gray-300'
+                }`}
+                title={isSelected ? `${scriptPath} (active — click to deselect)` : scriptPath}
+              >
+                {isSelected ? `● ${name}` : `○ ${name}`}
+              </button>
+            </div>
+          )
+        })
+      ) : project.envScript ? (
+        <div className="flex items-center gap-1 pl-3 pr-3 py-1 group">
+          <span className="text-[10px] text-gray-400 truncate flex-1" title={project.envScript}>
+            {selectedName}
+          </span>
+          <button
+            onClick={() => onUpdateProject(project.id, { envScript: undefined })}
+            className="text-gray-600 hover:text-red-400 text-[10px] opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+            title="Remove env script"
+          >
+            x
+          </button>
+        </div>
+      ) : null}
+      <button
+        onClick={async () => {
+          const path = await window.konductorAPI.selectFile('Select env script')
+          if (path) onUpdateProject(project.id, { envScript: path })
+        }}
+        className="w-full flex items-center gap-2 pl-3 pr-3 py-1 text-left text-gray-600 hover:text-accent transition-colors"
+      >
+        <span className="text-xs">+ set script</span>
+      </button>
+    </>
   )
 }
 

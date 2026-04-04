@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto'
 import { execFileSync } from 'child_process'
 import { tmpdir } from 'os'
-import { existsSync } from 'fs'
+import { existsSync, readdirSync } from 'fs'
 import { join } from 'path'
 import * as nodePty from 'node-pty'
 import { BrowserWindow } from 'electron'
@@ -102,9 +102,29 @@ function getProjectEnv(envScript: string, cwd?: string): Record<string, string> 
   }
 }
 
+/** Resolve a worktree path back to the project root, or return cwd as-is. */
+function resolveProjectRoot(cwd: string): string {
+  const worktreeMarker = `${join('.konductor', 'worktrees')}/`
+  const idx = cwd.indexOf(worktreeMarker)
+  if (idx !== -1) return cwd.slice(0, idx)
+  return cwd
+}
+
 function detectEnvScript(cwd: string): string | null {
-  const candidate = join(cwd, '.konductor', 'envrc.sh')
+  const root = resolveProjectRoot(cwd)
+  const candidate = join(root, '.konductor', 'envrc.sh')
   return existsSync(candidate) ? candidate : null
+}
+
+export function listEnvScripts(cwd: string): string[] {
+  const dir = join(cwd, '.konductor')
+  try {
+    return readdirSync(dir)
+      .filter((f) => f.endsWith('.sh'))
+      .map((f) => join(dir, f))
+  } catch {
+    return []
+  }
 }
 
 function spawnClaude(

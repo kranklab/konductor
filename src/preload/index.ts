@@ -32,6 +32,7 @@ export interface KonductorAPI {
   getChanges: (sessionId: string) => Promise<ChangedFile[]>
   readFile: (path: string) => Promise<string>
   getDiff: (cwd: string, filePath: string, isUntracked: boolean) => Promise<string>
+  listEnvScripts: (cwd: string) => Promise<string[]>
   selectDirectory: () => Promise<string | null>
   selectFile: (title?: string) => Promise<string | null>
   listWorktrees: (cwd: string) => Promise<WorktreeInfo[]>
@@ -131,6 +132,7 @@ const api: KonductorAPI = {
   getDiff: (cwd: string, filePath: string, isUntracked: boolean) =>
     ipcRenderer.invoke('get-diff', cwd, filePath, isUntracked),
 
+  listEnvScripts: (cwd: string) => ipcRenderer.invoke('list-env-scripts', cwd),
   selectDirectory: () => ipcRenderer.invoke('select-directory'),
   selectFile: (title?: string) => ipcRenderer.invoke('select-file', title),
 
