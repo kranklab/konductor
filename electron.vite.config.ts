@@ -10,6 +10,11 @@ export default defineConfig({
       rollupOptions: {
         external: ['node-pty']
       }
+    },
+    server: {
+      watch: {
+        ignored: ['**/.konductor/**']
+      }
     }
   },
   preload: {
@@ -22,6 +27,11 @@ export default defineConfig({
       }
     },
     plugins: [react()],
+    server: {
+      watch: {
+        ignored: ['**/.konductor/**']
+      }
+    },
     define: {
       __APP_VERSION__: JSON.stringify(pkg.version)
     }
