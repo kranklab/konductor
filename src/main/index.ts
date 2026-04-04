@@ -50,6 +50,12 @@ function createWindow(): void {
   })
 
   mainWindow.on('ready-to-show', () => {
+    if (is.dev) {
+      const worktreeMatch = process.cwd().match(/\.konductor\/worktrees\/([^/]+)/)
+      if (worktreeMatch) {
+        mainWindow!.setTitle(`Konductor [${worktreeMatch[1]}]`)
+      }
+    }
     mainWindow!.show()
   })
 
