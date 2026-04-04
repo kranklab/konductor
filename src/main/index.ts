@@ -22,7 +22,8 @@ import {
   getAllSessionCwds,
   getClaudePath,
   getEnv,
-  ensurePluginInstalled
+  ensurePluginInstalled,
+  listEnvScripts
 } from './sessionManager'
 import { isPathWithinAllowedDirs } from './pathValidation'
 import { loadState, saveState, type PersistedState } from './store'
@@ -318,6 +319,10 @@ app.whenReady().then(() => {
     })
     if (result.canceled || result.filePaths.length === 0) return null
     return result.filePaths[0]
+  })
+
+  ipcMain.handle('list-env-scripts', (_event, cwd: string) => {
+    return listEnvScripts(cwd)
   })
 
   ipcMain.handle('select-file', async (_event, title?: string) => {

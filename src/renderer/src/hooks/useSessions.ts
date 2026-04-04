@@ -323,11 +323,15 @@ export function useSessions() {
     const dir = await api.selectDirectory()
     if (!dir) return null
 
+    // Auto-discover env scripts from the project's .konductor/ directory
+    const envScripts = await api.listEnvScripts(dir)
+    const envScript = envScripts.length > 0 ? envScripts[0] : undefined
+
     let project: Project | null = null
     setProjects((prev) => {
       const id = `project-${getNextProjectId(prev)}`
       const name = dir.split('/').pop() || dir
-      project = { id, name, cwd: dir }
+      project = { id, name, cwd: dir, envScript }
       return [...prev, project]
     })
     if (!project) return null
