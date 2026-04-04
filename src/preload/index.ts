@@ -4,6 +4,7 @@ import type { ActivityState } from '../main/activityWatcher'
 import type { SessionInfo } from '../main/sessionManager'
 import type { PersistedState } from '../main/store'
 import type { WorktreeInfo, BranchDetail } from '../main/worktree'
+import type { GitHubRepo, GitHubPR, GitHubIssue } from '../main/github'
 
 export type UpdateStatus = { status: 'available' | 'ready'; version: string }
 
@@ -14,7 +15,7 @@ export interface KonductorAPI {
   getScrollback: (sessionId: string) => Promise<string>
   createSession: (
     cwd: string,
-    opts?: { claudeSessionId?: string; name?: string; resume?: boolean }
+    opts?: { claudeSessionId?: string; name?: string; resume?: boolean; prompt?: string }
   ) => Promise<{ id: string; claudeSessionId: string }>
   killSession: (sessionId: string) => void
   writeToSession: (sessionId: string, data: string) => void
@@ -44,6 +45,10 @@ export interface KonductorAPI {
   onSessionActivity: (
     cb: (claudeSessionId: string, state: ActivityState, tool: string) => void
   ) => () => void
+  getGitHubRepo: (cwd: string) => Promise<GitHubRepo | null>
+  listPullRequests: (cwd: string, state: string) => Promise<GitHubPR[]>
+  listIssues: (cwd: string, state: string) => Promise<GitHubIssue[]>
+  openExternal: (url: string) => Promise<void>
 }
 
 const api: KonductorAPI = {
@@ -53,7 +58,7 @@ const api: KonductorAPI = {
   getScrollback: (sessionId: string) => ipcRenderer.invoke('get-scrollback', sessionId),
   createSession: (
     cwd: string,
-    opts?: { claudeSessionId?: string; name?: string; resume?: boolean }
+    opts?: { claudeSessionId?: string; name?: string; resume?: boolean; prompt?: string }
   ) => ipcRenderer.invoke('create-session', cwd, opts),
 
   killSession: (sessionId: string) => ipcRenderer.send('kill-session', sessionId),
@@ -139,7 +144,12 @@ const api: KonductorAPI = {
     }
     ipcRenderer.on('session-activity', handler)
     return () => ipcRenderer.removeListener('session-activity', handler)
-  }
+  },
+  getGitHubRepo: (cwd: string) => ipcRenderer.invoke('get-github-repo', cwd),
+  listPullRequests: (cwd: string, state: string) =>
+    ipcRenderer.invoke('list-pull-requests', cwd, state),
+  listIssues: (cwd: string, state: string) => ipcRenderer.invoke('list-issues', cwd, state),
+  openExternal: (url: string) => ipcRenderer.invoke('open-external', url)
 }
 
 if (process.contextIsolated) {

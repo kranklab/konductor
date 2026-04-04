@@ -8,6 +8,7 @@ import FocusView from './components/FocusView'
 import ChangesView from './components/ChangesView'
 import WorktreeModal from './components/WorktreeModal'
 import BranchesView from './components/BranchesView'
+import GitHubView from './components/GitHubView'
 
 const savedViewMode = import.meta.hot?.data?.viewMode as ViewMode | undefined
 
@@ -57,6 +58,49 @@ function App(): React.JSX.Element {
   const handleShowBranches = useCallback(() => {
     setViewMode('branches')
   }, [])
+
+  const handleShowGitHub = useCallback(() => {
+    setViewMode('github')
+  }, [])
+
+  const handleOpenBranchSession = useCallback(
+    async (branch: string, isNew: boolean, prompt?: string) => {
+      if (!activeProject || !activeProjectId) return
+
+      // 1. Check if a session already exists on this branch (by matching title)
+      const existing = allSessions.find(
+        (s) => s.projectId === activeProjectId && s.title === branch
+      )
+      if (existing) {
+        setActiveSessionId(existing.id)
+        setViewMode('focus')
+        return
+      }
+
+      // 2. Check if a worktree already exists for this branch
+      try {
+        const worktrees = await window.konductorAPI.listWorktrees(activeProject.cwd)
+        const wt = worktrees.find((w) => w.branch === branch)
+        if (wt) {
+          await createSession(activeProjectId, wt.path, branch, prompt)
+          setViewMode('focus')
+          return
+        }
+      } catch {
+        // ignore worktree listing errors
+      }
+
+      // 3. Create a new worktree and session
+      try {
+        const wt = await window.konductorAPI.createWorktree(activeProject.cwd, branch, isNew)
+        await createSession(activeProjectId, wt.path, branch, prompt)
+        setViewMode('focus')
+      } catch (e) {
+        console.error('Failed to create worktree session:', e)
+      }
+    },
+    [activeProject, activeProjectId, allSessions, createSession, setActiveSessionId]
+  )
 
   const handleNewProject = useCallback(async () => {
     const project = await createProject()
@@ -245,6 +289,7 @@ function App(): React.JSX.Element {
         onNewSession={handleNewSessionInProject}
         onRemoveProject={removeProject}
         onShowBranches={handleShowBranches}
+        onShowGitHub={handleShowGitHub}
       />
 
       <main className="flex-1 min-w-0">
@@ -285,6 +330,14 @@ function App(): React.JSX.Element {
 
         {effectiveViewMode === 'branches' && activeProject && (
           <BranchesView project={activeProject} onBack={() => setViewMode('grid')} />
+        )}
+
+        {effectiveViewMode === 'github' && activeProject && (
+          <GitHubView
+            project={activeProject}
+            onBack={() => setViewMode('grid')}
+            onOpenSession={handleOpenBranchSession}
+          />
         )}
       </main>
 

@@ -80,11 +80,16 @@ function spawnClaude(
   cwd: string,
   claudeSessionId: string,
   name: string,
-  resume: boolean
+  resume: boolean,
+  prompt?: string
 ): nodePty.IPty {
   const args = resume
     ? ['--resume', claudeSessionId, '--plugin-dir', PLUGIN_PATH]
     : ['--session-id', claudeSessionId, '--name', name, '--plugin-dir', PLUGIN_PATH]
+
+  if (prompt && !resume) {
+    args.push('--prompt', prompt)
+  }
 
   return nodePty.spawn(getClaudePath(), args, {
     name: 'xterm-256color',
@@ -98,14 +103,14 @@ function spawnClaude(
 export function createSession(
   cwd: string,
   window: BrowserWindow,
-  opts?: { claudeSessionId?: string; name?: string; resume?: boolean }
+  opts?: { claudeSessionId?: string; name?: string; resume?: boolean; prompt?: string }
 ): { id: string; claudeSessionId: string } {
   const id = `session-${nextId++}`
   const claudeSessionId = opts?.claudeSessionId ?? randomUUID()
   const name = opts?.name ?? `Session ${nextId - 1}`
   const resume = opts?.resume ?? false
 
-  const pty = spawnClaude(cwd, claudeSessionId, name, resume)
+  const pty = spawnClaude(cwd, claudeSessionId, name, resume, opts?.prompt)
 
   const entry: SessionEntry = {
     pty,
