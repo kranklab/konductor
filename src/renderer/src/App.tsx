@@ -323,6 +323,7 @@ function App(): React.JSX.Element {
         {effectiveViewMode === 'focus' && activeSession && (
           <FocusView
             session={activeSession}
+            projectName={activeProject?.name ?? ''}
             onBack={() => setViewMode('grid')}
             onShowChanges={() => setViewMode('changes')}
             onClose={() => handleCloseSession(activeSession.id)}
