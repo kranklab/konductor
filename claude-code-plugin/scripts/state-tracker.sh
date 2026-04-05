@@ -24,7 +24,7 @@ case "$EVENT" in
     STATE="working"
     TOOL=""
     ;;
-  Stop)
+  Notification|Stop)
     STATE="waiting"
     TOOL=""
     # Generate summary from Claude's first response in the transcript.
