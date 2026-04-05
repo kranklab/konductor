@@ -382,6 +382,8 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
+  createWindow()
+
   registerStateHandlers(ipcMain)
   registerSessionHandlers(ipcMain, mainWindow!)
   registerFileHandlers(ipcMain)
@@ -389,8 +391,6 @@ app.whenReady().then(() => {
   registerGitHubHandlers(ipcMain)
   registerDialogHandlers(ipcMain, mainWindow!)
   registerUpdateHandlers(ipcMain)
-
-  createWindow()
   startActivityWatcher(mainWindow!)
   ensurePluginInstalled()
 
