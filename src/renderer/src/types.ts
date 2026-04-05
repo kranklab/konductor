@@ -1,6 +1,6 @@
 import type { Terminal } from '@xterm/xterm'
 
-export type ViewMode = 'grid' | 'focus' | 'changes' | 'branches' | 'github'
+export type ViewMode = 'grid' | 'focus' | 'branches' | 'github'
 
 export interface Project {
   id: string
@@ -23,6 +23,13 @@ export interface Session {
   activity: ActivityState
   /** Session metadata loaded from disk but not yet spawned */
   dormant: boolean
+}
+
+export interface ShellTerminal {
+  id: string
+  sessionId: string
+  terminal: Terminal
+  alive: boolean
 }
 
 export interface ChangedFile {
