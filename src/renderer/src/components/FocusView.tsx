@@ -4,6 +4,7 @@ import type { Session } from '../types'
 
 interface FocusViewProps {
   session: Session
+  projectName: string
   onBack: () => void
   onShowChanges: () => void
   onClose: () => void
@@ -14,6 +15,7 @@ interface FocusViewProps {
 
 export default function FocusView({
   session,
+  projectName,
   onBack,
   onShowChanges,
   onClose,
@@ -108,6 +110,8 @@ export default function FocusView({
                       : 'bg-green-400'
               }`}
             />
+            <span className="text-sm text-gray-500">{projectName}</span>
+            <span className="text-sm text-gray-500">/</span>
             <span className="text-sm text-gray-300">{session.title}</span>
             <span className="text-xs text-gray-500">{session.cwd}</span>
           </div>
