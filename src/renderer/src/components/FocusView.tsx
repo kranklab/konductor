@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
-import { FitAddon } from '@xterm/addon-fit'
+import { useState, useRef } from 'react'
 import type { Session } from '../types'
+import { useTerminalMount } from '../hooks/useTerminalMount'
 
 interface FocusViewProps {
   session: Session
@@ -27,64 +27,8 @@ export default function FocusView({
   const [summaryDraft, setSummaryDraft] = useState('')
   const summaryInputRef = useRef<HTMLTextAreaElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const fitAddonRef = useRef<FitAddon | null>(null)
-  const onResizeRef = useRef(onResize)
-  useEffect(() => {
-    onResizeRef.current = onResize
-  })
 
-  useEffect(() => {
-    const container = containerRef.current
-    if (!container || !session.terminal) return
-
-    const terminal = session.terminal
-
-    // Clear container when session changes
-    while (container.firstChild) {
-      container.removeChild(container.firstChild)
-    }
-
-    const fitAddon = new FitAddon()
-    fitAddonRef.current = fitAddon
-    terminal.loadAddon(fitAddon)
-
-    if (terminal.element) {
-      container.appendChild(terminal.element)
-    } else {
-      terminal.open(container)
-    }
-
-    requestAnimationFrame(() => {
-      try {
-        fitAddon.fit()
-        onResizeRef.current(terminal.cols, terminal.rows)
-      } catch {
-        // ignore
-      }
-      terminal.focus()
-    })
-  }, [session])
-
-  useEffect(() => {
-    const fitAddon = fitAddonRef.current
-    if (!fitAddon || !session.terminal) return
-
-    const terminal = session.terminal
-    const observer = new ResizeObserver(() => {
-      try {
-        fitAddon.fit()
-        onResizeRef.current(terminal.cols, terminal.rows)
-      } catch {
-        // ignore
-      }
-    })
-
-    if (containerRef.current) {
-      observer.observe(containerRef.current)
-    }
-
-    return () => observer.disconnect()
-  }, [session])
+  useTerminalMount(containerRef, session, onResize, { clearContainer: true, autoFocus: true })
 
   return (
     <div className="h-full flex flex-col">

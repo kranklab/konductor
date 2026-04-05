@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { FitAddon } from '@xterm/addon-fit'
 import type { Session, ChangedFile } from '../types'
+import { useTerminalMount } from '../hooks/useTerminalMount'
 
 interface ChangesViewProps {
   session: Session
@@ -74,68 +74,11 @@ export default function ChangesView({
   const [selectedFile, setSelectedFile] = useState<ChangedFile | null>(null)
   const [diffResult, setDiffResult] = useState<{ path: string; lines: DiffLine[] } | null>(null)
   const termContainerRef = useRef<HTMLDivElement>(null)
-  const fitAddonRef = useRef<FitAddon | null>(null)
-  const mountedRef = useRef(false)
-  const onResizeRef = useRef(onResize)
-  useEffect(() => {
-    onResizeRef.current = onResize
-  })
 
   const [leftWidth, onDragH] = useDrag('horizontal', 480, 200, 900)
   const [treeHeight, onDragV] = useDrag('vertical', 180, 60, 600)
 
-  // Mount terminal in right panel
-  useEffect(() => {
-    const container = termContainerRef.current
-    if (!container || !session.terminal) return
-
-    const terminal = session.terminal
-
-    if (!mountedRef.current) {
-      const fitAddon = new FitAddon()
-      fitAddonRef.current = fitAddon
-      terminal.loadAddon(fitAddon)
-
-      if (terminal.element) {
-        container.appendChild(terminal.element)
-      } else {
-        terminal.open(container)
-      }
-      mountedRef.current = true
-    } else if (terminal.element) {
-      container.appendChild(terminal.element)
-    }
-
-    requestAnimationFrame(() => {
-      try {
-        fitAddonRef.current?.fit()
-        onResizeRef.current(terminal.cols, terminal.rows)
-      } catch {
-        // ignore
-      }
-    })
-  }, [session])
-
-  useEffect(() => {
-    const fitAddon = fitAddonRef.current
-    if (!fitAddon || !session.terminal) return
-
-    const terminal = session.terminal
-    const observer = new ResizeObserver(() => {
-      try {
-        fitAddon.fit()
-        onResizeRef.current(terminal.cols, terminal.rows)
-      } catch {
-        // ignore
-      }
-    })
-
-    if (termContainerRef.current) {
-      observer.observe(termContainerRef.current)
-    }
-
-    return () => observer.disconnect()
-  }, [session])
+  useTerminalMount(termContainerRef, session, onResize)
 
   // Load diff when file selected
   useEffect(() => {
