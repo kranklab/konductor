@@ -178,7 +178,9 @@ export function createSession(
   const envScript = opts?.envScript ?? detectEnvScript(cwd)
   const env = envScript ? getProjectEnv(envScript, cwd) : undefined
 
-  console.log(`[session] createSession id=${id} claude=${claudeSessionId} resume=${resume} cwd=${cwd}`)
+  console.log(
+    `[session] createSession id=${id} claude=${claudeSessionId} resume=${resume} cwd=${cwd}`
+  )
 
   const pty = spawnClaude(cwd, claudeSessionId, name, resume, opts?.prompt, env)
 
