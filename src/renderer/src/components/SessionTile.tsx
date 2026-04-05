@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
-import { FitAddon } from '@xterm/addon-fit'
+import { useState, useRef } from 'react'
 import type { Session } from '../types'
+import { useTerminalMount } from '../hooks/useTerminalMount'
 
 interface SessionTileProps {
   session: Session
@@ -26,62 +26,8 @@ export default function SessionTile({
   const [editingSummary, setEditingSummary] = useState(false)
   const [summaryDraft, setSummaryDraft] = useState('')
   const containerRef = useRef<HTMLDivElement>(null)
-  const fitAddonRef = useRef<FitAddon | null>(null)
-  const mountedRef = useRef(false)
-  const onResizeRef = useRef(onResize)
-  useEffect(() => {
-    onResizeRef.current = onResize
-  })
 
-  useEffect(() => {
-    const container = containerRef.current
-    if (!container || mountedRef.current || !session.terminal) return
-
-    const fitAddon = new FitAddon()
-    fitAddonRef.current = fitAddon
-    session.terminal.loadAddon(fitAddon)
-
-    // Terminal might already be opened (e.g. returning from focus view).
-    // If so, re-parent the existing DOM element instead of calling open() again.
-    if (session.terminal.element) {
-      container.appendChild(session.terminal.element)
-    } else {
-      session.terminal.open(container)
-    }
-
-    // Initial fit after the terminal is rendered
-    requestAnimationFrame(() => {
-      try {
-        fitAddon.fit()
-        onResizeRef.current(session.terminal!.cols, session.terminal!.rows)
-      } catch {
-        // Container may not be visible yet
-      }
-    })
-
-    mountedRef.current = true
-  }, [session.terminal])
-
-  // Re-fit when visibility or layout changes
-  useEffect(() => {
-    const fitAddon = fitAddonRef.current
-    if (!fitAddon || !session.terminal) return
-
-    const observer = new ResizeObserver(() => {
-      try {
-        fitAddon.fit()
-        onResizeRef.current(session.terminal!.cols, session.terminal!.rows)
-      } catch {
-        // Ignore fit errors during transitions
-      }
-    })
-
-    if (containerRef.current) {
-      observer.observe(containerRef.current)
-    }
-
-    return () => observer.disconnect()
-  }, [session.terminal])
+  useTerminalMount(containerRef, session, onResize)
 
   return (
     <div

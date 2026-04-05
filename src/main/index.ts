@@ -82,59 +82,54 @@ function createWindow(): void {
   }
 }
 
-app.whenReady().then(() => {
-  electronApp.setAppUserModelId('com.kranklab.konductor')
+// ─── IPC Handler Registration ─────────────────────────────────────────
 
-  app.on('browser-window-created', (_, window) => {
-    optimizer.watchWindowShortcuts(window)
-  })
-
-  // --- IPC Handlers ---
-
-  ipcMain.handle('load-state', () => {
+function registerStateHandlers(ipc: typeof ipcMain): void {
+  ipc.handle('load-state', () => {
     return loadState()
   })
 
-  ipcMain.handle('save-state', (_event, state: PersistedState) => {
+  ipc.handle('save-state', (_event, state: PersistedState) => {
     return saveState(state)
   })
+}
 
-  ipcMain.handle(
+function registerSessionHandlers(ipc: typeof ipcMain, window: BrowserWindow): void {
+  ipc.handle(
     'create-session',
     (
       _event,
       cwd: string,
       opts?: { claudeSessionId?: string; name?: string; resume?: boolean; envScript?: string }
     ) => {
-      if (!mainWindow) throw new Error('No main window')
-      return createSession(cwd, mainWindow, opts)
+      if (!window) throw new Error('No main window')
+      return createSession(cwd, window, opts)
     }
   )
 
-  ipcMain.on('write-to-session', (_event, sessionId: string, data: string) => {
+  ipc.on('write-to-session', (_event, sessionId: string, data: string) => {
     writeToSession(sessionId, data)
   })
 
-  ipcMain.on('resize-session', (_event, sessionId: string, cols: number, rows: number) => {
+  ipc.on('resize-session', (_event, sessionId: string, cols: number, rows: number) => {
     resizeSession(sessionId, cols, rows)
   })
 
-  ipcMain.on('kill-session', (_event, sessionId: string) => {
+  ipc.on('kill-session', (_event, sessionId: string) => {
     killSession(sessionId)
   })
 
-  ipcMain.handle('list-sessions', () => {
+  ipc.handle('list-sessions', () => {
     return listSessions()
   })
 
-  ipcMain.handle('get-scrollback', (_event, sessionId: string) => {
+  ipc.handle('get-scrollback', (_event, sessionId: string) => {
     return getSessionScrollback(sessionId)
   })
 
-  ipcMain.handle(
+  ipc.handle(
     'generate-summary',
     async (_event, cwd: string, claudeSessionId: string): Promise<string> => {
-      // Read the transcript to build conversation context for summarization
       const pathKey = cwd.replace(/[/.]/g, '-')
       const transcriptPath = join(
         homedir(),
@@ -148,7 +143,6 @@ app.whenReady().then(() => {
       try {
         await access(transcriptPath)
         const raw = await readFile(transcriptPath, 'utf-8')
-        // Extract the first few user and assistant messages as context
         const snippets: string[] = []
         for (const line of raw.trim().split('\n')) {
           try {
@@ -172,13 +166,12 @@ app.whenReady().then(() => {
           }
         }
         context = snippets.join('\n\n')
-      } catch {
-        // Transcript not available
+      } catch (err) {
+        console.warn('[summary] Failed to read transcript:', (err as Error).message)
       }
 
       if (!context) return ''
 
-      // Call claude CLI in print mode to generate a summary
       const prompt = `Summarize this Claude Code session in one short sentence (max 120 chars). Describe WHAT is being worked on, not HOW. No quotes or prefixes.\n\nConversation:\n${context}`
 
       return new Promise<string>((resolve) => {
@@ -188,6 +181,7 @@ app.whenReady().then(() => {
           { env: getEnv(), timeout: 15000 },
           (err, stdout) => {
             if (err || !stdout) {
+              if (err) console.warn('[summary] Claude CLI failed:', (err as Error).message)
               resolve('')
               return
             }
@@ -198,11 +192,17 @@ app.whenReady().then(() => {
     }
   )
 
-  ipcMain.handle('get-changes', (_event, sessionId: string) => {
+  ipc.handle('get-changes', (_event, sessionId: string) => {
     return getSessionChanges(sessionId)
   })
 
-  ipcMain.handle('read-file', async (_event, filePath: string) => {
+  ipc.handle('list-env-scripts', (_event, cwd: string) => {
+    return listEnvScripts(cwd)
+  })
+}
+
+function registerFileHandlers(ipc: typeof ipcMain): void {
+  ipc.handle('read-file', async (_event, filePath: string) => {
     const allowedDirs = getAllSessionCwds()
     if (!isPathWithinAllowedDirs(filePath, allowedDirs)) {
       throw new Error('Access denied: path outside session working directories')
@@ -211,10 +211,9 @@ app.whenReady().then(() => {
     return content
   })
 
-  ipcMain.handle('get-diff', (_event, cwd: string, filePath: string, isUntracked: boolean) => {
+  ipc.handle('get-diff', (_event, cwd: string, filePath: string, isUntracked: boolean) => {
     return new Promise<string>((resolve) => {
       if (isUntracked) {
-        // Untracked files: diff against empty to show all lines as added
         execFile(
           'git',
           ['diff', '--no-index', '--', '/dev/null', filePath],
@@ -224,9 +223,9 @@ app.whenReady().then(() => {
           }
         )
       } else {
-        // Tracked files: diff working tree + staged against HEAD
         execFile('git', ['diff', 'HEAD', '--', filePath], { cwd }, (err, stdout) => {
           if (err && !stdout) {
+            console.warn('[diff] git diff failed for', filePath, (err as Error).message)
             resolve('')
             return
           }
@@ -235,70 +234,49 @@ app.whenReady().then(() => {
       }
     })
   })
+}
 
-  ipcMain.handle('list-worktrees', (_event, cwd: string) => {
+function registerWorktreeHandlers(ipc: typeof ipcMain): void {
+  ipc.handle('list-worktrees', (_event, cwd: string) => {
     return listWorktrees(cwd)
   })
 
-  ipcMain.handle(
+  ipc.handle(
     'create-worktree',
     (_event, cwd: string, branch: string, newBranch: boolean, updateFromOrigin: boolean) => {
       return createWorktree(cwd, branch, newBranch, updateFromOrigin)
     }
   )
 
-  ipcMain.handle('list-branches', (_event, cwd: string) => {
+  ipc.handle('list-branches', (_event, cwd: string) => {
     return listBranches(cwd)
   })
 
-  ipcMain.handle('get-branch-details', (_event, cwd: string) => {
+  ipc.handle('get-branch-details', (_event, cwd: string) => {
     return getBranchDetails(cwd)
   })
 
-  ipcMain.handle('delete-branch', (_event, cwd: string, branch: string, force: boolean) => {
+  ipc.handle('delete-branch', (_event, cwd: string, branch: string, force: boolean) => {
     return deleteBranch(cwd, branch, force)
   })
 
-  ipcMain.handle('delete-remote-branch', (_event, cwd: string, remote: string, branch: string) => {
+  ipc.handle('delete-remote-branch', (_event, cwd: string, remote: string, branch: string) => {
     return deleteRemoteBranch(cwd, remote, branch)
   })
 
-  ipcMain.handle('fetch-prune', (_event, cwd: string) => {
+  ipc.handle('fetch-prune', (_event, cwd: string) => {
     return fetchPrune(cwd)
   })
 
-  ipcMain.handle('remove-worktree', (_event, repoRoot: string, worktreePath: string) => {
+  ipc.handle('remove-worktree', (_event, repoRoot: string, worktreePath: string) => {
     return removeWorktree(repoRoot, worktreePath)
   })
 
-  ipcMain.on('install-update', () => {
-    autoUpdater.quitAndInstall()
+  ipc.handle('get-branch-files', (_event, cwd: string, branch: string, worktreePath: string) => {
+    return getBranchFiles(cwd, branch, worktreePath)
   })
 
-  ipcMain.handle('get-github-repo', (_event, cwd: string) => {
-    return getGitHubRepo(cwd)
-  })
-
-  ipcMain.handle('list-pull-requests', (_event, cwd: string, state: string) => {
-    return listPullRequests(cwd, state as 'open' | 'closed' | 'merged' | 'all')
-  })
-
-  ipcMain.handle('list-issues', (_event, cwd: string, state: string) => {
-    return listIssues(cwd, state as 'open' | 'closed' | 'all')
-  })
-
-  ipcMain.handle('open-external', (_event, url: string) => {
-    return shell.openExternal(url)
-  })
-
-  ipcMain.handle(
-    'get-branch-files',
-    (_event, cwd: string, branch: string, worktreePath: string) => {
-      return getBranchFiles(cwd, branch, worktreePath)
-    }
-  )
-
-  ipcMain.handle(
+  ipc.handle(
     'get-branch-diff',
     (
       _event,
@@ -311,23 +289,39 @@ app.whenReady().then(() => {
       return getBranchDiff(cwd, branch, filePath, source, worktreePath)
     }
   )
+}
 
-  ipcMain.handle('select-directory', async () => {
-    if (!mainWindow) return null
-    const result = await dialog.showOpenDialog(mainWindow, {
+function registerGitHubHandlers(ipc: typeof ipcMain): void {
+  ipc.handle('get-github-repo', (_event, cwd: string) => {
+    return getGitHubRepo(cwd)
+  })
+
+  ipc.handle('list-pull-requests', (_event, cwd: string, state: string) => {
+    return listPullRequests(cwd, state as 'open' | 'closed' | 'merged' | 'all')
+  })
+
+  ipc.handle('list-issues', (_event, cwd: string, state: string) => {
+    return listIssues(cwd, state as 'open' | 'closed' | 'all')
+  })
+
+  ipc.handle('open-external', (_event, url: string) => {
+    return shell.openExternal(url)
+  })
+}
+
+function registerDialogHandlers(ipc: typeof ipcMain, window: BrowserWindow): void {
+  ipc.handle('select-directory', async () => {
+    if (!window) return null
+    const result = await dialog.showOpenDialog(window, {
       properties: ['openDirectory']
     })
     if (result.canceled || result.filePaths.length === 0) return null
     return result.filePaths[0]
   })
 
-  ipcMain.handle('list-env-scripts', (_event, cwd: string) => {
-    return listEnvScripts(cwd)
-  })
-
-  ipcMain.handle('select-file', async (_event, title?: string) => {
-    if (!mainWindow) return null
-    const result = await dialog.showOpenDialog(mainWindow, {
+  ipc.handle('select-file', async (_event, title?: string) => {
+    if (!window) return null
+    const result = await dialog.showOpenDialog(window, {
       title: title ?? 'Select File',
       properties: ['openFile'],
       filters: [
@@ -338,6 +332,30 @@ app.whenReady().then(() => {
     if (result.canceled || result.filePaths.length === 0) return null
     return result.filePaths[0]
   })
+}
+
+function registerUpdateHandlers(ipc: typeof ipcMain): void {
+  ipc.on('install-update', () => {
+    autoUpdater.quitAndInstall()
+  })
+}
+
+// ─── App Lifecycle ────────────────────────────────────────────────────
+
+app.whenReady().then(() => {
+  electronApp.setAppUserModelId('com.kranklab.konductor')
+
+  app.on('browser-window-created', (_, window) => {
+    optimizer.watchWindowShortcuts(window)
+  })
+
+  registerStateHandlers(ipcMain)
+  registerSessionHandlers(ipcMain, mainWindow!)
+  registerFileHandlers(ipcMain)
+  registerWorktreeHandlers(ipcMain)
+  registerGitHubHandlers(ipcMain)
+  registerDialogHandlers(ipcMain, mainWindow!)
+  registerUpdateHandlers(ipcMain)
 
   createWindow()
   startActivityWatcher(mainWindow!)

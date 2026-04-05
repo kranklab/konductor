@@ -13,7 +13,7 @@ export interface FileWatcher {
   getChanges(): ChangedFile[]
 }
 
-function parseGitStatus(stdout: string): ChangedFile[] {
+export function parseGitStatus(stdout: string): ChangedFile[] {
   const now = Date.now()
   const files: ChangedFile[] = []
 
@@ -42,7 +42,7 @@ function runGitStatus(cwd: string): Promise<ChangedFile[]> {
   return new Promise((resolve) => {
     execFile('git', ['status', '--porcelain'], { cwd }, (err, stdout) => {
       if (err) {
-        // Not a git repo or git not installed — return empty
+        console.warn('[fileWatcher] git status failed for', cwd, (err as Error).message)
         resolve([])
         return
       }

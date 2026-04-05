@@ -15,46 +15,63 @@ function git(args: string[], cwd: string): Promise<string> {
   })
 }
 
+/** Like git() but resolves to empty string on error (for best-effort queries). Does NOT trim output. */
+function gitSafe(args: string[], cwd: string): Promise<string> {
+  return new Promise((resolve) => {
+    execFile('git', args, { cwd }, (err, stdout) => {
+      if (err) resolve('')
+      else resolve(stdout || '')
+    })
+  })
+}
+
+/** Run gh CLI, resolving to empty string on error. */
+function ghSafe(args: string[], cwd: string): Promise<string> {
+  return new Promise((resolve) => {
+    execFile('gh', args, { cwd }, (err, stdout) => {
+      if (err) {
+        console.warn('[gh]', args.slice(0, 3).join(' '), 'failed:', (err as Error).message)
+        resolve('')
+      } else {
+        resolve((stdout || '').trim())
+      }
+    })
+  })
+}
+
 function getDefaultBranch(cwd: string): Promise<string> {
   return git(['symbolic-ref', 'refs/remotes/origin/HEAD'], cwd)
     .then((ref) => ref.replace('refs/remotes/origin/', ''))
     .catch(() => 'main')
 }
 
-export function listWorktrees(cwd: string): Promise<WorktreeInfo[]> {
-  return new Promise((resolve, reject) => {
-    execFile('git', ['worktree', 'list', '--porcelain'], { cwd }, (err, stdout) => {
-      if (err) {
-        reject(err)
-        return
+export async function listWorktrees(cwd: string): Promise<WorktreeInfo[]> {
+  const stdout = await git(['worktree', 'list', '--porcelain'], cwd)
+
+  const worktrees: WorktreeInfo[] = []
+  const blocks = stdout.split('\n\n')
+
+  for (let i = 0; i < blocks.length; i++) {
+    const lines = blocks[i].split('\n')
+    let path = ''
+    let branch = ''
+
+    for (const line of lines) {
+      if (line.startsWith('worktree ')) {
+        path = line.substring('worktree '.length)
+      } else if (line.startsWith('branch ')) {
+        branch = line.substring('branch '.length).replace('refs/heads/', '')
+      } else if (line === 'detached') {
+        branch = '(detached)'
       }
+    }
 
-      const worktrees: WorktreeInfo[] = []
-      const blocks = stdout.trim().split('\n\n')
+    if (path) {
+      worktrees.push({ path, branch, isMain: i === 0 })
+    }
+  }
 
-      for (let i = 0; i < blocks.length; i++) {
-        const lines = blocks[i].split('\n')
-        let path = ''
-        let branch = ''
-
-        for (const line of lines) {
-          if (line.startsWith('worktree ')) {
-            path = line.substring('worktree '.length)
-          } else if (line.startsWith('branch ')) {
-            branch = line.substring('branch '.length).replace('refs/heads/', '')
-          } else if (line === 'detached') {
-            branch = '(detached)'
-          }
-        }
-
-        if (path) {
-          worktrees.push({ path, branch, isMain: i === 0 })
-        }
-      }
-
-      resolve(worktrees)
-    })
-  })
+  return worktrees
 }
 
 export async function createWorktree(
@@ -108,94 +125,49 @@ export async function removeWorktree(repoRoot: string, worktreePath: string): Pr
   })
 }
 
-export function listBranches(cwd: string): Promise<string[]> {
-  return new Promise((resolve, reject) => {
-    execFile(
-      'git',
-      ['branch', '--format=%(refname:short)', '--sort=-committerdate'],
-      { cwd },
-      (err, stdout) => {
-        if (err) {
-          reject(err)
-          return
-        }
-        resolve(
-          stdout
-            .trim()
-            .split('\n')
-            .filter((b) => b.length > 0)
-        )
-      }
-    )
-  })
+export async function listBranches(cwd: string): Promise<string[]> {
+  const stdout = await git(['branch', '--format=%(refname:short)', '--sort=-committerdate'], cwd)
+  return stdout.split('\n').filter((b) => b.length > 0)
 }
 
-function getAheadCount(cwd: string, branch: string, mainBranch: string): Promise<number> {
-  return new Promise((resolve) => {
-    execFile('git', ['rev-list', '--count', `${mainBranch}..${branch}`], { cwd }, (err, stdout) => {
-      if (err) {
-        resolve(-1)
-        return
-      }
-      resolve(parseInt(stdout.trim(), 10) || 0)
-    })
-  })
+async function getAheadCount(cwd: string, branch: string, mainBranch: string): Promise<number> {
+  const stdout = await gitSafe(['rev-list', '--count', `${mainBranch}..${branch}`], cwd)
+  return parseInt(stdout.trim(), 10) || 0
 }
 
 const NO_PR: PrInfo = { state: 'none' as const, number: 0, url: '' }
 
-function getPrStatus(cwd: string, branch: string): Promise<PrInfo> {
-  return new Promise((resolve) => {
-    execFile(
-      'gh',
-      [
-        'pr',
-        'list',
-        '--head',
-        branch,
-        '--state',
-        'all',
-        '--json',
-        'state,number,url',
-        '--limit',
-        '1'
-      ],
-      { cwd },
-      (err, stdout) => {
-        if (err) {
-          resolve(NO_PR)
-          return
-        }
-        try {
-          const prs = JSON.parse(stdout.trim())
-          if (prs.length === 0) {
-            resolve(NO_PR)
-            return
-          }
-          const pr = prs[0]
-          resolve({
-            state: (pr.state as string).toLowerCase() as PrState,
-            number: pr.number,
-            url: pr.url
-          })
-        } catch {
-          resolve(NO_PR)
-        }
-      }
-    )
-  })
+/** Fetch all PR statuses in a single gh call, indexed by branch name. */
+export async function batchGetPrStatuses(cwd: string): Promise<Map<string, PrInfo>> {
+  const result = new Map<string, PrInfo>()
+  const stdout = await ghSafe(
+    ['pr', 'list', '--state', 'all', '--json', 'headRefName,state,number,url', '--limit', '200'],
+    cwd
+  )
+  if (!stdout) return result
+
+  try {
+    const prs = JSON.parse(stdout)
+    for (const pr of prs) {
+      if (!pr.headRefName) continue
+      // Only keep the first PR per branch (most recent)
+      if (result.has(pr.headRefName)) continue
+      result.set(pr.headRefName, {
+        state: (pr.state as string).toLowerCase() as PrState,
+        number: pr.number,
+        url: pr.url
+      })
+    }
+  } catch {
+    // malformed JSON — return empty map
+  }
+
+  return result
 }
 
-function isWorktreeDirty(worktreePath: string): Promise<boolean> {
-  return new Promise((resolve) => {
-    execFile('git', ['status', '--porcelain'], { cwd: worktreePath }, (err, stdout) => {
-      if (err) {
-        resolve(false)
-        return
-      }
-      resolve(stdout.trim().length > 0)
-    })
-  })
+async function isWorktreeDirty(worktreePath: string): Promise<boolean> {
+  const stdout = await gitSafe(['status', '--porcelain'], worktreePath)
+  return stdout.trim().length > 0
 }
 
 /** Parse a single line of NUL-delimited git branch output. */
@@ -221,78 +193,69 @@ export function parseBranchLine(line: string): {
   }
 }
 
-export function getBranchDetails(cwd: string): Promise<BranchDetail[]> {
-  return new Promise((resolve, reject) => {
-    const SEP = '%x00'
-    const format = [
-      '%(refname:short)',
-      '%(HEAD)',
-      '%(upstream:short)',
-      '%(upstream:track)',
-      '%(committerdate:iso8601)',
-      '%(committerdate:relative)',
-      '%(subject)'
-    ].join(SEP)
+export async function getBranchDetails(cwd: string): Promise<BranchDetail[]> {
+  const SEP = '%x00'
+  const format = [
+    '%(refname:short)',
+    '%(HEAD)',
+    '%(upstream:short)',
+    '%(upstream:track)',
+    '%(committerdate:iso8601)',
+    '%(committerdate:relative)',
+    '%(subject)'
+  ].join(SEP)
 
-    execFile(
-      'git',
-      ['branch', `--format=${format}`, '--sort=-committerdate'],
-      { cwd },
-      async (err, stdout) => {
-        if (err) {
-          reject(err)
-          return
-        }
+  const stdout = await git(['branch', `--format=${format}`, '--sort=-committerdate'], cwd)
 
-        let worktrees: WorktreeInfo[] = []
-        try {
-          worktrees = await listWorktrees(cwd)
-        } catch {
-          // ignore – worktree info is optional
-        }
+  let worktrees: WorktreeInfo[] = []
+  try {
+    worktrees = await listWorktrees(cwd)
+  } catch {
+    // ignore – worktree info is optional
+  }
 
-        const wtByBranch = new Map(worktrees.map((w) => [w.branch, w.path]))
-        const mainBranch = 'origin/' + (worktrees.find((w) => w.isMain)?.branch ?? 'main')
+  const wtByBranch = new Map(worktrees.map((w) => [w.branch, w.path]))
+  const mainBranch = 'origin/' + (worktrees.find((w) => w.isMain)?.branch ?? 'main')
 
-        const parsed = stdout
-          .trim()
-          .split('\n')
-          .filter((line) => line.length > 0)
-          .map((line) => parseBranchLine(line))
-          .filter((obj) => obj !== null)
+  // Batch-fetch all PR statuses in a single gh call
+  const prStatuses = await batchGetPrStatuses(cwd)
 
-        const branches: BranchDetail[] = await Promise.all(
-          parsed.map(async (obj) => {
-            const name: string = obj.name
-            const worktreePath = wtByBranch.get(name) || ''
-            const isMain = name === mainBranch
+  const parsed = stdout
+    .split('\n')
+    .filter((line) => line.length > 0)
+    .map((line) => parseBranchLine(line))
+    .filter((obj) => obj !== null)
 
-            const [aheadCount, dirty, pr] = await Promise.all([
-              isMain ? Promise.resolve(0) : getAheadCount(cwd, name, mainBranch),
-              worktreePath ? isWorktreeDirty(worktreePath) : Promise.resolve(false),
-              isMain ? Promise.resolve(NO_PR) : getPrStatus(cwd, name)
-            ])
+  const branches: BranchDetail[] = await Promise.all(
+    parsed.map(async (obj) => {
+      const name: string = obj.name
+      const worktreePath = wtByBranch.get(name) || ''
+      const isMain = name === mainBranch
 
-            return {
-              name,
-              isHead: obj.head === '*',
-              upstream: obj.upstream || '',
-              gone: obj.track.includes('gone'),
-              lastCommitDate: obj.date || '',
-              lastCommitRelative: obj.relative || '',
-              lastCommitSubject: obj.subject || '',
-              worktreePath,
-              aheadCount,
-              dirty,
-              pr
-            }
-          })
-        )
+      const [aheadCount, dirty] = await Promise.all([
+        isMain ? Promise.resolve(0) : getAheadCount(cwd, name, mainBranch),
+        worktreePath ? isWorktreeDirty(worktreePath) : Promise.resolve(false)
+      ])
 
-        resolve(branches)
+      const pr = prStatuses.get(name) ?? NO_PR
+
+      return {
+        name,
+        isHead: obj.head === '*',
+        upstream: obj.upstream || '',
+        gone: obj.track.includes('gone'),
+        lastCommitDate: obj.date || '',
+        lastCommitRelative: obj.relative || '',
+        lastCommitSubject: obj.subject || '',
+        worktreePath,
+        aheadCount,
+        dirty,
+        pr
       }
-    )
-  })
+    })
+  )
+
+  return branches
 }
 
 /** List files changed on a branch (committed vs origin/main + uncommitted in worktree) */
@@ -303,14 +266,13 @@ export async function getBranchFiles(
 ): Promise<BranchFile[]> {
   const files: BranchFile[] = []
 
-  // Committed changes: branch vs origin/main
-  const committed = await new Promise<string>((resolve) => {
-    execFile('git', ['diff', '--name-status', 'origin/main...' + branch], { cwd }, (err, stdout) =>
-      resolve(err ? '' : stdout)
-    )
-  })
+  const defaultBranch = await getDefaultBranch(cwd)
+  const base = `origin/${defaultBranch}`
 
-  for (const line of committed.trim().split('\n')) {
+  // Committed changes: branch vs origin default branch
+  const committed = await gitSafe(['diff', '--name-status', `${base}...${branch}`], cwd)
+
+  for (const line of committed.split('\n')) {
     if (!line) continue
     const [statusRaw, ...pathParts] = line.split('\t')
     const status = statusRaw.charAt(0) as BranchFile['status']
@@ -320,16 +282,9 @@ export async function getBranchFiles(
 
   // Uncommitted changes in the worktree
   if (worktreePath) {
-    const uncommitted = await new Promise<string>((resolve) => {
-      execFile(
-        'git',
-        ['status', '--porcelain', '--no-renames'],
-        { cwd: worktreePath },
-        (err, stdout) => resolve(err ? '' : stdout)
-      )
-    })
+    const uncommitted = await gitSafe(['status', '--porcelain', '--no-renames'], worktreePath)
 
-    for (const line of uncommitted.trim().split('\n')) {
+    for (const line of uncommitted.split('\n')) {
       if (!line) continue
       const xy = line.substring(0, 2)
       const path = line.substring(3)
@@ -344,71 +299,41 @@ export async function getBranchFiles(
   return files
 }
 
-/** Get diff for a single file — either committed (branch vs origin/main) or uncommitted (worktree vs HEAD) */
-export function getBranchDiff(
+/** Get diff for a single file — either committed (branch vs origin default) or uncommitted (worktree vs HEAD) */
+export async function getBranchDiff(
   cwd: string,
   branch: string,
   filePath: string,
   source: 'committed' | 'uncommitted',
   worktreePath: string
 ): Promise<string> {
-  return new Promise((resolve) => {
-    if (source === 'committed') {
-      execFile('git', ['diff', 'origin/main...' + branch, '--', filePath], { cwd }, (err, stdout) =>
-        resolve(err && !stdout ? '' : stdout || '')
-      )
-    } else {
-      // Uncommitted: run in the worktree directory
-      const dir = worktreePath || cwd
-      execFile('git', ['diff', 'HEAD', '--', filePath], { cwd: dir }, (_err, stdout) => {
-        if (stdout && stdout.trim()) {
-          resolve(stdout)
-        } else {
-          // No diff from HEAD — file is likely untracked, try --no-index
-          execFile(
-            'git',
-            ['diff', '--no-index', '--', '/dev/null', filePath],
-            { cwd: dir },
-            (_err2, stdout2) => resolve(stdout2 || '')
-          )
-        }
-      })
-    }
-  })
+  if (source === 'committed') {
+    const defaultBranch = await getDefaultBranch(cwd)
+    const base = `origin/${defaultBranch}`
+    return gitSafe(['diff', `${base}...${branch}`, '--', filePath], cwd)
+  }
+
+  // Uncommitted: run in the worktree directory
+  const dir = worktreePath || cwd
+  const stdout = await gitSafe(['diff', 'HEAD', '--', filePath], dir)
+  if (stdout) return stdout
+
+  // No diff from HEAD — file is likely untracked, try --no-index
+  return gitSafe(['diff', '--no-index', '--', '/dev/null', filePath], dir)
 }
 
-export function deleteBranch(cwd: string, branch: string, force: boolean): Promise<void> {
-  return new Promise((resolve, reject) => {
-    execFile('git', ['branch', force ? '-D' : '-d', branch], { cwd }, (err) => {
-      if (err) {
-        reject(err)
-        return
-      }
-      resolve()
-    })
-  })
+export async function deleteBranch(cwd: string, branch: string, force: boolean): Promise<void> {
+  await git(['branch', force ? '-D' : '-d', branch], cwd)
 }
 
-export function deleteRemoteBranch(cwd: string, remote: string, branch: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    execFile('git', ['push', remote, '--delete', branch], { cwd }, (err) => {
-      if (err) {
-        reject(err)
-        return
-      }
-      resolve()
-    })
-  })
+export async function deleteRemoteBranch(
+  cwd: string,
+  remote: string,
+  branch: string
+): Promise<void> {
+  await git(['push', remote, '--delete', branch], cwd)
 }
 
-export function fetchPrune(cwd: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    execFile('git', ['fetch', '--prune'], { cwd }, (err) => {
-      if (err) {
-        reject(err)
-        return
-      }
-      resolve()
-    })
-  })
+export async function fetchPrune(cwd: string): Promise<void> {
+  await git(['fetch', '--prune'], cwd)
 }
