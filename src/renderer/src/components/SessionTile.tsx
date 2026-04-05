@@ -8,6 +8,7 @@ interface SessionTileProps {
   onSelect: () => void
   onFocus: () => void
   onClose: () => void
+  onResume: () => void
   onResize: (cols: number, rows: number) => void
   onUpdateSummary: (summary: string) => void
 }
@@ -18,6 +19,7 @@ export default function SessionTile({
   onSelect,
   onFocus,
   onClose,
+  onResume,
   onResize,
   onUpdateSummary
 }: SessionTileProps): React.JSX.Element {
@@ -33,7 +35,7 @@ export default function SessionTile({
 
   useEffect(() => {
     const container = containerRef.current
-    if (!container || mountedRef.current) return
+    if (!container || mountedRef.current || !session.terminal) return
 
     const fitAddon = new FitAddon()
     fitAddonRef.current = fitAddon
@@ -51,7 +53,7 @@ export default function SessionTile({
     requestAnimationFrame(() => {
       try {
         fitAddon.fit()
-        onResizeRef.current(session.terminal.cols, session.terminal.rows)
+        onResizeRef.current(session.terminal!.cols, session.terminal!.rows)
       } catch {
         // Container may not be visible yet
       }
@@ -63,12 +65,12 @@ export default function SessionTile({
   // Re-fit when visibility or layout changes
   useEffect(() => {
     const fitAddon = fitAddonRef.current
-    if (!fitAddon) return
+    if (!fitAddon || !session.terminal) return
 
     const observer = new ResizeObserver(() => {
       try {
         fitAddon.fit()
-        onResizeRef.current(session.terminal.cols, session.terminal.rows)
+        onResizeRef.current(session.terminal!.cols, session.terminal!.rows)
       } catch {
         // Ignore fit errors during transitions
       }
@@ -90,7 +92,7 @@ export default function SessionTile({
       }`}
       onClick={() => {
         onSelect()
-        session.terminal.focus()
+        session.terminal?.focus()
       }}
       onDoubleClick={onFocus}
     >
@@ -100,13 +102,15 @@ export default function SessionTile({
           <div className="flex items-center gap-2 min-w-0">
             <div
               className={`w-2 h-2 rounded-full shrink-0 ${
-                !session.alive
-                  ? 'bg-red-400'
-                  : session.activity === 'working'
-                    ? 'bg-green-400 animate-pulse'
-                    : session.activity === 'waiting'
-                      ? 'bg-amber-400'
-                      : 'bg-green-400'
+                session.dormant
+                  ? 'bg-gray-500'
+                  : !session.alive
+                    ? 'bg-red-400'
+                    : session.activity === 'working'
+                      ? 'bg-green-400 animate-pulse'
+                      : session.activity === 'waiting'
+                        ? 'bg-amber-400'
+                        : 'bg-green-400'
               }`}
             />
             <span className="text-xs text-gray-400 truncate">{session.title}</span>
@@ -182,7 +186,24 @@ export default function SessionTile({
       </div>
 
       {/* Terminal container */}
-      <div ref={containerRef} className="h-64 bg-surface-raised" />
+      {session.dormant ? (
+        <div className="h-64 bg-surface-raised flex items-center justify-center">
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onResume()
+            }}
+            className="flex items-center gap-2 px-4 py-2 rounded-md bg-accent/10 border border-accent/20 text-accent hover:bg-accent/20 transition-colors text-sm"
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M4 2l10 6-10 6V2z" />
+            </svg>
+            Resume
+          </button>
+        </div>
+      ) : (
+        <div ref={containerRef} className="h-64 bg-surface-raised" />
+      )}
     </div>
   )
 }

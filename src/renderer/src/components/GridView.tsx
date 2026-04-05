@@ -13,6 +13,7 @@ interface GridViewProps {
   onSetGridCols: (cols: GridCols) => void
   onFocusSession: (id: string) => void
   onCloseSession: (id: string) => void
+  onResumeSession: (id: string) => void
   onResizeSession: (id: string, cols: number, rows: number) => void
   onUpdateSummary: (id: string, summary: string) => void
   onNewSession: () => void
@@ -28,6 +29,7 @@ export default function GridView({
   onSetGridCols: setCols,
   onFocusSession,
   onCloseSession,
+  onResumeSession,
   onResizeSession,
   onUpdateSummary,
   onNewSession,
@@ -110,6 +112,7 @@ export default function GridView({
             onSelect={() => onSelectSession(session.id)}
             onFocus={() => onFocusSession(session.id)}
             onClose={() => onCloseSession(session.id)}
+            onResume={() => onResumeSession(session.id)}
             onResize={(cols, rows) => onResizeSession(session.id, cols, rows)}
             onUpdateSummary={(summary) => onUpdateSummary(session.id, summary)}
           />

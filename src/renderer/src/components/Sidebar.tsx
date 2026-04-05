@@ -212,22 +212,26 @@ export default function Sidebar({
                       >
                         <div
                           className={`w-1.5 h-1.5 rounded-full shrink-0 mt-1 ${
-                            !session.alive
-                              ? 'bg-red-400'
-                              : session.activity === 'working'
-                                ? 'bg-green-400 animate-pulse'
-                                : session.activity === 'waiting'
-                                  ? 'bg-amber-400'
-                                  : 'bg-green-400'
+                            session.dormant
+                              ? 'bg-gray-500'
+                              : !session.alive
+                                ? 'bg-red-400'
+                                : session.activity === 'working'
+                                  ? 'bg-green-400 animate-pulse'
+                                  : session.activity === 'waiting'
+                                    ? 'bg-amber-400'
+                                    : 'bg-green-400'
                           }`}
                           title={
-                            !session.alive
-                              ? 'Exited'
-                              : session.activity === 'working'
-                                ? 'Working...'
-                                : session.activity === 'waiting'
-                                  ? 'Awaiting input'
-                                  : 'Ready'
+                            session.dormant
+                              ? 'Paused — click to resume'
+                              : !session.alive
+                                ? 'Exited'
+                                : session.activity === 'working'
+                                  ? 'Working...'
+                                  : session.activity === 'waiting'
+                                    ? 'Awaiting input'
+                                    : 'Ready'
                           }
                         />
                         {isWorktree && (
