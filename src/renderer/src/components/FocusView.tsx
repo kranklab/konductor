@@ -188,7 +188,10 @@ export default function FocusView({
 
       {/* Terminal + dormant resume overlay */}
       <div className="flex-1 relative">
-        <div ref={containerRef} className={`absolute inset-0 bg-surface-raised ${session.dormant ? 'invisible' : ''}`} />
+        <div
+          ref={containerRef}
+          className={`absolute inset-0 bg-surface-raised ${session.dormant ? 'invisible' : ''}`}
+        />
         {session.dormant && (
           <div className="absolute inset-0 bg-surface-raised flex items-center justify-center">
             <div className="text-center">
