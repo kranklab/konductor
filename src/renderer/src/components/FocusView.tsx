@@ -1,28 +1,44 @@
 import { useState, useRef } from 'react'
-import type { Session } from '../types'
+import type { Session, ShellTerminal, ChangedFile } from '../types'
 import { useTerminalMount } from '../hooks/useTerminalMount'
+import TerminalPanel from './TerminalPanel'
+import ChangesPanel from './ChangesPanel'
 
 interface FocusViewProps {
   session: Session
   projectName: string
+  changes: ChangedFile[]
   onBack: () => void
-  onShowChanges: () => void
   onClose: () => void
   onResume: () => void
   onResize: (cols: number, rows: number) => void
   onUpdateSummary: (summary: string) => void
+  terminals: ShellTerminal[]
+  activeTerminalId: string | null
+  onSetActiveTerminal: (id: string) => void
+  onCreateTerminal: () => void
+  onKillTerminal: (id: string) => void
+  onResizeTerminal: (terminalId: string, cols: number, rows: number) => void
 }
 
 export default function FocusView({
   session,
   projectName,
+  changes,
   onBack,
-  onShowChanges,
   onClose,
   onResume,
   onResize,
-  onUpdateSummary
+  onUpdateSummary,
+  terminals,
+  activeTerminalId,
+  onSetActiveTerminal,
+  onCreateTerminal,
+  onKillTerminal,
+  onResizeTerminal
 }: FocusViewProps): React.JSX.Element {
+  const [terminalCollapsed, setTerminalCollapsed] = useState(false)
+  const [showChanges, setShowChanges] = useState(false)
   const [editingSummary, setEditingSummary] = useState(false)
   const [summaryDraft, setSummaryDraft] = useState('')
   const summaryInputRef = useRef<HTMLTextAreaElement>(null)
@@ -119,8 +135,29 @@ export default function FocusView({
         <div className="flex items-center gap-2 shrink-0 ml-3">
           {!session.dormant && (
             <button
-              onClick={onShowChanges}
+              onClick={
+                terminals.length > 0 && terminalCollapsed
+                  ? () => setTerminalCollapsed(false)
+                  : onCreateTerminal
+              }
               className="text-xs text-gray-400 hover:text-white px-2 py-1 rounded border border-surface-border hover:border-accent/50 transition-colors"
+              title={
+                terminals.length > 0 && terminalCollapsed
+                  ? 'Show terminals'
+                  : 'Open a shell terminal'
+              }
+            >
+              Terminal
+            </button>
+          )}
+          {!session.dormant && (
+            <button
+              onClick={() => setShowChanges((v) => !v)}
+              className={`text-xs px-2 py-1 rounded border transition-colors ${
+                showChanges
+                  ? 'text-white border-accent/50 bg-accent/10'
+                  : 'text-gray-400 hover:text-white border-surface-border hover:border-accent/50'
+              }`}
             >
               Changes
             </button>
@@ -129,17 +166,30 @@ export default function FocusView({
             onClick={onClose}
             className="text-xs text-gray-500 hover:text-red-400 px-2 py-1 transition-colors"
           >
-            {session.dormant ? 'Dismiss' : 'Kill'}
+            {session.dormant ? 'Dismiss' : 'Exit'}
           </button>
         </div>
       </div>
 
-      {/* Terminal + dormant resume overlay */}
-      <div className="flex-1 relative">
+      {/* Terminal + dormant resume overlay + side panels */}
+      <div className="flex-1 flex min-h-0 relative">
+        {/* Changes panel (left side) */}
+        {showChanges && !session.dormant && (
+          <>
+            <div className="w-[350px] min-w-[250px] max-w-[500px] shrink-0">
+              <ChangesPanel cwd={session.cwd} changes={changes} />
+            </div>
+            <div className="w-px bg-surface-border shrink-0" />
+          </>
+        )}
+
+        {/* Claude session terminal */}
         <div
           ref={containerRef}
-          className={`absolute inset-0 bg-surface-raised ${session.dormant ? 'invisible' : ''}`}
+          className={`bg-surface-raised min-w-0 flex-1 ${session.dormant ? 'invisible' : ''}`}
         />
+
+        {/* Dormant resume overlay */}
         {session.dormant && (
           <div className="absolute inset-0 bg-surface-raised flex items-center justify-center">
             <div className="text-center">
@@ -155,6 +205,36 @@ export default function FocusView({
               </button>
             </div>
           </div>
+        )}
+
+        {/* Shell terminals panel (right side) */}
+        {terminals.length > 0 && !session.dormant && (
+          <>
+            <div className="w-px bg-surface-border shrink-0" />
+            {terminalCollapsed ? (
+              <button
+                onClick={() => setTerminalCollapsed(false)}
+                className="w-8 shrink-0 flex flex-col items-center justify-center gap-1 bg-surface-overlay hover:bg-surface-raised transition-colors group"
+                title="Expand terminals"
+              >
+                <span className="text-gray-500 group-hover:text-gray-300 text-xs [writing-mode:vertical-lr] rotate-180">
+                  Terminal
+                </span>
+              </button>
+            ) : (
+              <div className="w-[45%] min-w-[300px] max-w-[600px] shrink-0">
+                <TerminalPanel
+                  terminals={terminals}
+                  activeTerminalId={activeTerminalId}
+                  onSetActiveTerminal={onSetActiveTerminal}
+                  onCreateTerminal={onCreateTerminal}
+                  onKillTerminal={onKillTerminal}
+                  onResize={onResizeTerminal}
+                  onCollapse={() => setTerminalCollapsed(true)}
+                />
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

@@ -1,11 +1,11 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import type { ViewMode, Session } from './types'
 import { useSessions } from './hooks/useSessions'
+import { useTerminals } from './hooks/useTerminals'
 import { useFileChanges } from './hooks/useFileChanges'
 import Sidebar from './components/Sidebar'
 import GridView from './components/GridView'
 import FocusView from './components/FocusView'
-import ChangesView from './components/ChangesView'
 import WorktreeModal from './components/WorktreeModal'
 import BranchesView from './components/BranchesView'
 import GitHubView from './components/GitHubView'
@@ -43,6 +43,16 @@ function App(): React.JSX.Element {
     setGridCols
   } = useSessions()
 
+  const {
+    activeTerminalId,
+    setActiveTerminalId,
+    createTerminal,
+    killTerminal,
+    resizeTerminal,
+    killSessionTerminals,
+    getSessionTerminals
+  } = useTerminals()
+
   // Worktree modal state: stores projectId when modal is open
   const [worktreeProjectId, setWorktreeProjectId] = useState<string | null>(null)
   const worktreeProject = worktreeProjectId
@@ -56,8 +66,7 @@ function App(): React.JSX.Element {
   const changes = useFileChanges(activeSessionId)
 
   // Fall back to grid when active session disappears (e.g. shell exited)
-  const effectiveViewMode =
-    (viewMode === 'focus' || viewMode === 'changes') && !activeSession ? 'grid' : viewMode
+  const effectiveViewMode = viewMode === 'focus' && !activeSession ? 'grid' : viewMode
 
   const handleShowBranches = useCallback(() => {
     setViewMode('branches')
@@ -144,12 +153,13 @@ function App(): React.JSX.Element {
 
   const doCloseSession = useCallback(
     (id: string) => {
+      killSessionTerminals(id)
       killSession(id)
       if (sessions.length <= 1) {
         setViewMode('grid')
       }
     },
-    [killSession, sessions.length]
+    [killSession, killSessionTerminals, sessions.length]
   )
 
   const handleCloseSession = useCallback(
@@ -324,21 +334,20 @@ function App(): React.JSX.Element {
           <FocusView
             session={activeSession}
             projectName={activeProject?.name ?? ''}
+            changes={changes}
             onBack={() => setViewMode('grid')}
-            onShowChanges={() => setViewMode('changes')}
             onClose={() => handleCloseSession(activeSession.id)}
             onResume={() => resumeSession(activeSession.id)}
             onResize={(cols, rows) => handleResizeSession(activeSession.id, cols, rows)}
             onUpdateSummary={(summary) => updateSessionSummary(activeSession.id, summary)}
-          />
-        )}
-
-        {effectiveViewMode === 'changes' && activeSession && (
-          <ChangesView
-            session={activeSession}
-            changes={changes}
-            onBack={() => setViewMode('focus')}
-            onResize={(cols, rows) => handleResizeSession(activeSession.id, cols, rows)}
+            terminals={getSessionTerminals(activeSession.id)}
+            activeTerminalId={activeTerminalId}
+            onSetActiveTerminal={setActiveTerminalId}
+            onCreateTerminal={() =>
+              createTerminal(activeSession.id, activeSession.cwd, activeProject?.envScript)
+            }
+            onKillTerminal={killTerminal}
+            onResizeTerminal={resizeTerminal}
           />
         )}
 

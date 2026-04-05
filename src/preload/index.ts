@@ -66,6 +66,15 @@ export interface KonductorAPI {
     source: 'committed' | 'uncommitted',
     worktreePath: string
   ) => Promise<string>
+
+  // Shell terminals
+  createTerminal: (sessionId: string, cwd: string, envScript?: string) => Promise<{ id: string }>
+  killTerminal: (terminalId: string) => void
+  writeToTerminal: (terminalId: string, data: string) => void
+  resizeTerminal: (terminalId: string, cols: number, rows: number) => void
+  getTerminalScrollback: (terminalId: string) => Promise<string>
+  onTerminalOutput: (cb: (terminalId: string, data: string) => void) => () => void
+  onTerminalExit: (cb: (terminalId: string, exitCode: number) => void) => () => void
 }
 
 const api: KonductorAPI = {
@@ -186,7 +195,44 @@ const api: KonductorAPI = {
     filePath: string,
     source: 'committed' | 'uncommitted',
     worktreePath: string
-  ) => ipcRenderer.invoke('get-branch-diff', cwd, branch, filePath, source, worktreePath)
+  ) => ipcRenderer.invoke('get-branch-diff', cwd, branch, filePath, source, worktreePath),
+
+  // Shell terminals
+  createTerminal: (sessionId: string, cwd: string, envScript?: string) =>
+    ipcRenderer.invoke('create-terminal', sessionId, cwd, envScript),
+
+  killTerminal: (terminalId: string) => ipcRenderer.send('kill-terminal', terminalId),
+
+  writeToTerminal: (terminalId: string, data: string) =>
+    ipcRenderer.send('write-to-terminal', terminalId, data),
+
+  resizeTerminal: (terminalId: string, cols: number, rows: number) =>
+    ipcRenderer.send('resize-terminal', terminalId, cols, rows),
+
+  getTerminalScrollback: (terminalId: string) =>
+    ipcRenderer.invoke('get-terminal-scrollback', terminalId),
+
+  onTerminalOutput: (cb: (terminalId: string, data: string) => void) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      payload: { terminalId: string; data: string }
+    ): void => {
+      cb(payload.terminalId, payload.data)
+    }
+    ipcRenderer.on('terminal-output', handler)
+    return () => ipcRenderer.removeListener('terminal-output', handler)
+  },
+
+  onTerminalExit: (cb: (terminalId: string, exitCode: number) => void) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      payload: { terminalId: string; exitCode: number }
+    ): void => {
+      cb(payload.terminalId, payload.exitCode)
+    }
+    ipcRenderer.on('terminal-exit', handler)
+    return () => ipcRenderer.removeListener('terminal-exit', handler)
+  }
 }
 
 if (process.contextIsolated) {

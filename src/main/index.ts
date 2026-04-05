@@ -41,6 +41,15 @@ import {
   getBranchDiff
 } from './worktree'
 import { getGitHubRepo, listPullRequests, listIssues } from './github'
+import {
+  createTerminal,
+  getTerminalScrollback,
+  writeToTerminal,
+  resizeTerminal,
+  killTerminal,
+  killAllTerminals,
+  killSessionTerminals
+} from './terminalManager'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -116,7 +125,31 @@ function registerSessionHandlers(ipc: typeof ipcMain, window: BrowserWindow): vo
   })
 
   ipc.on('kill-session', (_event, sessionId: string) => {
+    killSessionTerminals(sessionId)
     killSession(sessionId)
+  })
+
+  // --- Shell terminal handlers ---
+
+  ipc.handle('create-terminal', (_event, sessionId: string, cwd: string, envScript?: string) => {
+    if (!window) throw new Error('No main window')
+    return createTerminal(sessionId, cwd, window, envScript)
+  })
+
+  ipc.on('write-to-terminal', (_event, terminalId: string, data: string) => {
+    writeToTerminal(terminalId, data)
+  })
+
+  ipc.on('resize-terminal', (_event, terminalId: string, cols: number, rows: number) => {
+    resizeTerminal(terminalId, cols, rows)
+  })
+
+  ipc.on('kill-terminal', (_event, terminalId: string) => {
+    killTerminal(terminalId)
+  })
+
+  ipc.handle('get-terminal-scrollback', (_event, terminalId: string) => {
+    return getTerminalScrollback(terminalId)
   })
 
   ipc.handle('list-sessions', () => {
@@ -398,6 +431,7 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   stopActivityWatcher()
+  killAllTerminals()
   killAllSessions()
   if (process.platform !== 'darwin') {
     app.quit()
