@@ -36,6 +36,7 @@ function App(): React.JSX.Element {
     activeSessionId,
     setActiveSessionId,
     createSession,
+    resumeSession,
     killSession,
     resizeSession,
     updateSessionSummary
@@ -244,7 +245,7 @@ function App(): React.JSX.Element {
         if (next >= 0) {
           setActiveSessionId(s[next].id)
           // Focus the terminal so keystrokes go to it even in grid view
-          requestAnimationFrame(() => s[next].terminal.focus())
+          requestAnimationFrame(() => s[next].terminal?.focus())
           e.preventDefault()
         }
         return
@@ -310,6 +311,7 @@ function App(): React.JSX.Element {
             onSetGridCols={setGridCols}
             onFocusSession={handleFocusSession}
             onCloseSession={handleCloseSession}
+            onResumeSession={resumeSession}
             onResizeSession={handleResizeSession}
             onUpdateSummary={updateSessionSummary}
             onNewSession={handleNewSession}
@@ -323,6 +325,7 @@ function App(): React.JSX.Element {
             onBack={() => setViewMode('grid')}
             onShowChanges={() => setViewMode('changes')}
             onClose={() => handleCloseSession(activeSession.id)}
+            onResume={() => resumeSession(activeSession.id)}
             onResize={(cols, rows) => handleResizeSession(activeSession.id, cols, rows)}
             onUpdateSummary={(summary) => updateSessionSummary(activeSession.id, summary)}
           />

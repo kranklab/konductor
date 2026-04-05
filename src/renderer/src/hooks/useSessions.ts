@@ -106,45 +106,25 @@ export function useSessions() {
         setActiveProjectId(state.activeProjectId)
       }
 
-      // Resume persisted sessions
+      // Create dormant session placeholders (lazy — no PTY spawned yet)
       if (state.sessions.length > 0) {
-        const resumed: Session[] = []
-        for (const meta of state.sessions) {
-          try {
-            const sessionProject = state.projects.find((p) => p.id === meta.projectId)
-            const { id } = await api.createSession(meta.cwd, {
-              claudeSessionId: meta.claudeSessionId,
-              name: meta.title,
-              resume: true,
-              envScript: sessionProject?.envScript
-            })
-            if (cancelled) return
-
-            const terminal = createTerminal()
-            terminal.onData((data) => api.writeToSession(id, data))
-
-            resumed.push({
-              id,
-              projectId: meta.projectId,
-              cwd: meta.cwd,
-              title: meta.title,
-              summary: meta.summary ?? '',
-              terminal,
-              alive: true,
-              claudeSessionId: meta.claudeSessionId,
-              activity: 'ready'
-            })
-          } catch {
-            // Session resume failed — skip it
-          }
-        }
-        if (!cancelled && resumed.length > 0) {
-          setSessions(resumed)
-          if (state.activeSessionIndex != null && state.activeSessionIndex < resumed.length) {
-            setActiveSessionId(resumed[state.activeSessionIndex].id)
-          } else {
-            setActiveSessionId(resumed[0].id)
-          }
+        const dormant: Session[] = state.sessions.map((meta, i) => ({
+          id: `dormant-${i}`,
+          projectId: meta.projectId,
+          cwd: meta.cwd,
+          title: meta.title,
+          summary: meta.summary ?? '',
+          terminal: null,
+          alive: false,
+          claudeSessionId: meta.claudeSessionId,
+          activity: 'ready',
+          dormant: true
+        }))
+        setSessions(dormant)
+        if (state.activeSessionIndex != null && state.activeSessionIndex < dormant.length) {
+          setActiveSessionId(dormant[state.activeSessionIndex].id)
+        } else {
+          setActiveSessionId(dormant[0].id)
         }
       }
 
@@ -192,7 +172,8 @@ export function useSessions() {
           terminal,
           alive: true,
           claudeSessionId: meta.claudeSessionId,
-          activity: 'ready'
+          activity: 'ready',
+          dormant: false
         })
       }
 
@@ -265,7 +246,7 @@ export function useSessions() {
         } satisfies HmrState
 
         for (const s of r.sessions()) {
-          s.terminal.dispose()
+          s.terminal?.dispose()
         }
       })
     }
@@ -277,7 +258,7 @@ export function useSessions() {
 
     const unsubOutput = api.onPtyOutput((sessionId, data) => {
       const session = sessionsRef.current.find((s) => s.id === sessionId)
-      if (session) {
+      if (session?.terminal) {
         session.terminal.write(data)
       }
     })
@@ -285,7 +266,7 @@ export function useSessions() {
     const unsubExit = api.onPtyExit((sessionId) => {
       const session = sessionsRef.current.find((s) => s.id === sessionId)
       if (session) {
-        session.terminal.dispose()
+        session.terminal?.dispose()
       }
       setSessions((prev) => prev.filter((s) => s.id !== sessionId))
       setActiveSessionId((prev) => {
@@ -343,8 +324,10 @@ export function useSessions() {
   const removeProject = useCallback((projectId: string) => {
     const projectSessions = sessionsRef.current.filter((s) => s.projectId === projectId)
     for (const session of projectSessions) {
-      api.killSession(session.id)
-      session.terminal.dispose()
+      if (!session.dormant) {
+        api.killSession(session.id)
+      }
+      session.terminal?.dispose()
     }
     setSessions((prev) => prev.filter((s) => s.projectId !== projectId))
     setProjects((prev) => prev.filter((p) => p.id !== projectId))
@@ -384,7 +367,8 @@ export function useSessions() {
         terminal,
         alive: true,
         claudeSessionId,
-        activity: 'ready'
+        activity: 'ready',
+        dormant: false
       }
 
       setSessions((prev) => [...prev, session])
@@ -395,11 +379,48 @@ export function useSessions() {
     [projects]
   )
 
+  const resumeSession = useCallback(
+    async (sessionId: string) => {
+      const session = sessionsRef.current.find((s) => s.id === sessionId)
+      if (!session || !session.dormant) return
+
+      const project = projects.find((p) => p.id === session.projectId)
+      const { id, claudeSessionId } = await api.createSession(session.cwd, {
+        claudeSessionId: session.claudeSessionId,
+        name: session.title,
+        resume: true,
+        envScript: project?.envScript
+      })
+
+      const terminal = createTerminal()
+      terminal.onData((data) => api.writeToSession(id, data))
+
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.id === sessionId
+            ? {
+                ...s,
+                id,
+                terminal,
+                alive: true,
+                claudeSessionId,
+                dormant: false
+              }
+            : s
+        )
+      )
+      setActiveSessionId(id)
+    },
+    [projects]
+  )
+
   const killSession = useCallback((sessionId: string) => {
     const session = sessionsRef.current.find((s) => s.id === sessionId)
     if (session) {
-      api.killSession(sessionId)
-      session.terminal.dispose()
+      if (!session.dormant) {
+        api.killSession(sessionId)
+      }
+      session.terminal?.dispose()
       setSessions((prev) => prev.filter((s) => s.id !== sessionId))
       setActiveSessionId((prev) => {
         if (prev === sessionId) {
@@ -439,6 +460,7 @@ export function useSessions() {
     activeSessionId,
     setActiveSessionId,
     createSession,
+    resumeSession,
     killSession,
     resizeSession,
     updateSessionSummary

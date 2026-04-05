@@ -87,27 +87,29 @@ export default function ChangesView({
   // Mount terminal in right panel
   useEffect(() => {
     const container = termContainerRef.current
-    if (!container) return
+    if (!container || !session.terminal) return
+
+    const terminal = session.terminal
 
     if (!mountedRef.current) {
       const fitAddon = new FitAddon()
       fitAddonRef.current = fitAddon
-      session.terminal.loadAddon(fitAddon)
+      terminal.loadAddon(fitAddon)
 
-      if (session.terminal.element) {
-        container.appendChild(session.terminal.element)
+      if (terminal.element) {
+        container.appendChild(terminal.element)
       } else {
-        session.terminal.open(container)
+        terminal.open(container)
       }
       mountedRef.current = true
-    } else if (session.terminal.element) {
-      container.appendChild(session.terminal.element)
+    } else if (terminal.element) {
+      container.appendChild(terminal.element)
     }
 
     requestAnimationFrame(() => {
       try {
         fitAddonRef.current?.fit()
-        onResizeRef.current(session.terminal.cols, session.terminal.rows)
+        onResizeRef.current(terminal.cols, terminal.rows)
       } catch {
         // ignore
       }
@@ -116,12 +118,13 @@ export default function ChangesView({
 
   useEffect(() => {
     const fitAddon = fitAddonRef.current
-    if (!fitAddon) return
+    if (!fitAddon || !session.terminal) return
 
+    const terminal = session.terminal
     const observer = new ResizeObserver(() => {
       try {
         fitAddon.fit()
-        onResizeRef.current(session.terminal.cols, session.terminal.rows)
+        onResizeRef.current(terminal.cols, terminal.rows)
       } catch {
         // ignore
       }

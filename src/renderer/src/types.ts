@@ -17,10 +17,12 @@ export interface Session {
   cwd: string
   title: string
   summary: string
-  terminal: Terminal
+  terminal: Terminal | null
   alive: boolean
   claudeSessionId: string
   activity: ActivityState
+  /** Session metadata loaded from disk but not yet spawned */
+  dormant: boolean
 }
 
 export interface ChangedFile {

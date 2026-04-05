@@ -7,6 +7,7 @@ interface FocusViewProps {
   onBack: () => void
   onShowChanges: () => void
   onClose: () => void
+  onResume: () => void
   onResize: (cols: number, rows: number) => void
   onUpdateSummary: (summary: string) => void
 }
@@ -16,6 +17,7 @@ export default function FocusView({
   onBack,
   onShowChanges,
   onClose,
+  onResume,
   onResize,
   onUpdateSummary
 }: FocusViewProps): React.JSX.Element {
@@ -31,7 +33,9 @@ export default function FocusView({
 
   useEffect(() => {
     const container = containerRef.current
-    if (!container) return
+    if (!container || !session.terminal) return
+
+    const terminal = session.terminal
 
     // Clear container when session changes
     while (container.firstChild) {
@@ -40,33 +44,34 @@ export default function FocusView({
 
     const fitAddon = new FitAddon()
     fitAddonRef.current = fitAddon
-    session.terminal.loadAddon(fitAddon)
+    terminal.loadAddon(fitAddon)
 
-    if (session.terminal.element) {
-      container.appendChild(session.terminal.element)
+    if (terminal.element) {
+      container.appendChild(terminal.element)
     } else {
-      session.terminal.open(container)
+      terminal.open(container)
     }
 
     requestAnimationFrame(() => {
       try {
         fitAddon.fit()
-        onResizeRef.current(session.terminal.cols, session.terminal.rows)
+        onResizeRef.current(terminal.cols, terminal.rows)
       } catch {
         // ignore
       }
-      session.terminal.focus()
+      terminal.focus()
     })
   }, [session])
 
   useEffect(() => {
     const fitAddon = fitAddonRef.current
-    if (!fitAddon) return
+    if (!fitAddon || !session.terminal) return
 
+    const terminal = session.terminal
     const observer = new ResizeObserver(() => {
       try {
         fitAddon.fit()
-        onResizeRef.current(session.terminal.cols, session.terminal.rows)
+        onResizeRef.current(terminal.cols, terminal.rows)
       } catch {
         // ignore
       }
@@ -164,23 +169,43 @@ export default function FocusView({
           )}
         </div>
         <div className="flex items-center gap-2 shrink-0 ml-3">
-          <button
-            onClick={onShowChanges}
-            className="text-xs text-gray-400 hover:text-white px-2 py-1 rounded border border-surface-border hover:border-accent/50 transition-colors"
-          >
-            Changes
-          </button>
+          {!session.dormant && (
+            <button
+              onClick={onShowChanges}
+              className="text-xs text-gray-400 hover:text-white px-2 py-1 rounded border border-surface-border hover:border-accent/50 transition-colors"
+            >
+              Changes
+            </button>
+          )}
           <button
             onClick={onClose}
             className="text-xs text-gray-500 hover:text-red-400 px-2 py-1 transition-colors"
           >
-            Kill
+            {session.dormant ? 'Dismiss' : 'Kill'}
           </button>
         </div>
       </div>
 
-      {/* Terminal */}
-      <div ref={containerRef} className="flex-1 bg-surface-raised" />
+      {/* Terminal + dormant resume overlay */}
+      <div className="flex-1 relative">
+        <div ref={containerRef} className={`absolute inset-0 bg-surface-raised ${session.dormant ? 'invisible' : ''}`} />
+        {session.dormant && (
+          <div className="absolute inset-0 bg-surface-raised flex items-center justify-center">
+            <div className="text-center">
+              <p className="text-gray-500 text-sm mb-4">Session is paused</p>
+              <button
+                onClick={onResume}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-md bg-accent/10 border border-accent/20 text-accent hover:bg-accent/20 transition-colors text-sm font-medium"
+              >
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                  <path d="M4 2l10 6-10 6V2z" />
+                </svg>
+                Resume
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
