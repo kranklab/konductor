@@ -6,7 +6,16 @@ import type { PersistedState } from '../main/store'
 import type { WorktreeInfo, BranchDetail, BranchFile } from '../shared/types'
 import type { GitHubRepo, GitHubPR, GitHubIssue } from '../shared/types'
 
-export type UpdateStatus = { status: 'available' | 'ready'; version: string }
+export type UpdateStatus =
+  | { status: 'available' | 'ready'; version: string }
+  | { status: 'error'; message: string }
+
+export interface LogEntry {
+  timestamp: number
+  level: 'info' | 'warn' | 'error'
+  category: string
+  message: string
+}
 
 export interface KonductorAPI {
   loadState: () => Promise<PersistedState>
@@ -51,6 +60,9 @@ export interface KonductorAPI {
   generateSummary: (cwd: string, claudeSessionId: string) => Promise<string>
   onUpdateStatus: (cb: (status: UpdateStatus) => void) => () => void
   installUpdate: () => void
+  checkForUpdates: () => void
+  getLogs: () => Promise<LogEntry[]>
+  onAppLog: (cb: (entry: LogEntry) => void) => () => void
   onSessionActivity: (
     cb: (claudeSessionId: string, state: ActivityState, tool: string, summary: string) => void
   ) => () => void
@@ -169,6 +181,15 @@ const api: KonductorAPI = {
     return () => ipcRenderer.removeListener('update-status', handler)
   },
   installUpdate: () => ipcRenderer.send('install-update'),
+  checkForUpdates: () => ipcRenderer.send('check-for-updates'),
+  getLogs: () => ipcRenderer.invoke('get-logs'),
+  onAppLog: (cb: (entry: LogEntry) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, entry: LogEntry): void => {
+      cb(entry)
+    }
+    ipcRenderer.on('app-log', handler)
+    return () => ipcRenderer.removeListener('app-log', handler)
+  },
 
   onSessionActivity: (
     cb: (claudeSessionId: string, state: ActivityState, tool: string, summary: string) => void

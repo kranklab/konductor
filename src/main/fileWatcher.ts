@@ -1,4 +1,5 @@
 import { execFile } from 'child_process'
+import { log } from './logger'
 import { watch, type FSWatcher } from 'chokidar'
 import { BrowserWindow } from 'electron'
 
@@ -42,7 +43,7 @@ function runGitStatus(cwd: string): Promise<ChangedFile[]> {
   return new Promise((resolve) => {
     execFile('git', ['status', '--porcelain'], { cwd }, (err, stdout) => {
       if (err) {
-        console.warn('[fileWatcher] git status failed for', cwd, (err as Error).message)
+        log.warn('fileWatcher', `git status failed for ${cwd}: ${(err as Error).message}`)
         resolve([])
         return
       }

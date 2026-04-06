@@ -8,6 +8,7 @@ import { BrowserWindow } from 'electron'
 import { is } from '@electron-toolkit/utils'
 import { createFileWatcher, FileWatcher } from './fileWatcher'
 import { shellQuote } from './shellEscape'
+import { log } from './logger'
 import { ScrollbackBuffer } from './ringBuffer'
 
 const DEV_PLUGIN_PATH = join(__dirname, '../../claude-code-plugin')
@@ -149,7 +150,7 @@ function spawnClaude(
     args.push('--prompt', prompt)
   }
 
-  console.log(`[session] spawn: ${getClaudePath()} ${args.join(' ')}  cwd=${cwd}`)
+  log.info('session', `spawn: ${getClaudePath()} ${args.join(' ')}  cwd=${cwd}`)
 
   return nodePty.spawn(getClaudePath(), args, {
     name: 'xterm-256color',
@@ -178,9 +179,7 @@ export function createSession(
   const envScript = opts?.envScript ?? detectEnvScript(cwd)
   const env = envScript ? getProjectEnv(envScript, cwd) : undefined
 
-  console.log(
-    `[session] createSession id=${id} claude=${claudeSessionId} resume=${resume} cwd=${cwd}`
-  )
+  log.info('session', `createSession id=${id} claude=${claudeSessionId} resume=${resume} cwd=${cwd}`)
 
   const pty = spawnClaude(cwd, claudeSessionId, name, resume, opts?.prompt, env)
 
@@ -202,7 +201,7 @@ export function createSession(
   })
 
   pty.onExit(({ exitCode }) => {
-    console.log(`[session] pty-exit id=${id} claude=${claudeSessionId} exitCode=${exitCode}`)
+    log.info('session', `pty-exit id=${id} claude=${claudeSessionId} exitCode=${exitCode}`)
     entry.alive = false
     if (!window.isDestroyed()) {
       window.webContents.send('pty-exit', { sessionId: id, exitCode })
@@ -299,14 +298,14 @@ export function ensurePluginInstalled(): void {
     // Add the marketplace (idempotent — no-ops if already added)
     execFileSync(claude, ['plugin', 'marketplace', 'add', MARKETPLACE_REPO], opts)
   } catch (err) {
-    console.warn('[plugin] Failed to add marketplace:', (err as Error).message)
+    log.warn('plugin', `Failed to add marketplace: ${(err as Error).message}`)
   }
 
   try {
     // Install the plugin (idempotent — no-ops if already installed)
     execFileSync(claude, ['plugin', 'install', MARKETPLACE_PLUGIN], opts)
   } catch (err) {
-    console.warn('[plugin] Failed to install plugin:', (err as Error).message)
+    log.warn('plugin', `Failed to install plugin: ${(err as Error).message}`)
   }
 }
 

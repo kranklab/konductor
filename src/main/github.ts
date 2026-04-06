@@ -1,4 +1,5 @@
 import { execFile } from 'child_process'
+import { log } from './logger'
 import type { GitHubRepo, GitHubPR, GitHubIssue } from '../shared/types'
 
 export type { GitHubRepo, GitHubPR, GitHubIssue }
@@ -7,7 +8,7 @@ export function getGitHubRepo(cwd: string): Promise<GitHubRepo | null> {
   return new Promise((resolve) => {
     execFile('git', ['remote', 'get-url', 'origin'], { cwd }, (err, stdout) => {
       if (err) {
-        console.warn('[github] Failed to get remote URL:', (err as Error).message)
+        log.warn('github', `Failed to get remote URL: ${(err as Error).message}`)
         resolve(null)
         return
       }
@@ -39,7 +40,7 @@ export async function listPullRequests(
       { cwd },
       (err, stdout) => {
         if (err) {
-          console.warn('[github] gh pr list failed:', (err as Error).message)
+          log.warn('github', `gh pr list failed: ${(err as Error).message}`)
           reject(err)
           return
         }
@@ -99,7 +100,7 @@ export async function listIssues(
       { cwd },
       (err, stdout) => {
         if (err) {
-          console.warn('[github] gh issue list failed:', (err as Error).message)
+          log.warn('github', `gh issue list failed: ${(err as Error).message}`)
           reject(err)
           return
         }

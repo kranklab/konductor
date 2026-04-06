@@ -9,6 +9,7 @@ import FocusView from './components/FocusView'
 import WorktreeModal from './components/WorktreeModal'
 import BranchesView from './components/BranchesView'
 import GitHubView from './components/GitHubView'
+import SettingsView from './components/SettingsView'
 
 const savedViewMode = import.meta.hot?.data?.viewMode as ViewMode | undefined
 
@@ -74,6 +75,10 @@ function App(): React.JSX.Element {
 
   const handleShowGitHub = useCallback(() => {
     setViewMode('github')
+  }, [])
+
+  const handleShowSettings = useCallback(() => {
+    setViewMode('settings')
   }, [])
 
   const handleOpenBranchSession = useCallback(
@@ -309,6 +314,7 @@ function App(): React.JSX.Element {
         onUpdateProject={updateProject}
         onShowBranches={handleShowBranches}
         onShowGitHub={handleShowGitHub}
+        onShowSettings={handleShowSettings}
       />
 
       <main className="flex-1 min-w-0">
@@ -361,6 +367,10 @@ function App(): React.JSX.Element {
             onBack={() => setViewMode('grid')}
             onOpenSession={handleOpenBranchSession}
           />
+        )}
+
+        {effectiveViewMode === 'settings' && (
+          <SettingsView onBack={() => setViewMode('grid')} />
         )}
       </main>
 
