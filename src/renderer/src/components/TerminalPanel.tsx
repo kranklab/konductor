@@ -10,6 +10,7 @@ interface TerminalPanelProps {
   onKillTerminal: (id: string) => void
   onResize: (terminalId: string, cols: number, rows: number) => void
   onCollapse: () => void
+  onSendToSession: (terminalId: string) => void
 }
 
 export default function TerminalPanel({
@@ -19,7 +20,8 @@ export default function TerminalPanel({
   onCreateTerminal,
   onKillTerminal,
   onResize,
-  onCollapse
+  onCollapse,
+  onSendToSession
 }: TerminalPanelProps): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
@@ -123,6 +125,15 @@ export default function TerminalPanel({
           +
         </button>
         <div className="flex-1" />
+        {activeTerminalId && (
+          <button
+            onClick={() => onSendToSession(activeTerminalId)}
+            className="text-gray-500 hover:text-accent text-xs px-1.5 py-0.5 transition-colors"
+            title="Send terminal output to Claude session"
+          >
+            &uarr; Send to session
+          </button>
+        )}
         <button
           onClick={onCollapse}
           className="text-gray-500 hover:text-gray-300 text-xs px-1.5 py-0.5 transition-colors"
