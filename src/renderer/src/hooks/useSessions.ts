@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Terminal } from '@xterm/xterm'
+import type { PrInfo } from '../../../shared/types'
 import type { Project, Session, ActivityState } from '../types'
 import type { GridCols } from '../components/GridView'
 import { TERM_THEME } from '../termTheme'
@@ -28,6 +29,7 @@ interface SessionMeta {
   title: string
   summary: string
   claudeSessionId: string
+  pr?: PrInfo
 }
 
 interface HmrState {
@@ -124,13 +126,23 @@ export function useSessions() {
           alive: false,
           claudeSessionId: meta.claudeSessionId,
           activity: 'ready',
-          dormant: true
+          dormant: true,
+          pr: meta.pr
         }))
         setSessions(dormant)
         if (state.activeSessionIndex != null && state.activeSessionIndex < dormant.length) {
           setActiveSessionId(dormant[state.activeSessionIndex].id)
         } else {
           setActiveSessionId(dormant[0].id)
+        }
+
+        // Enrich sessions with PR info (non-blocking)
+        for (const s of dormant) {
+          if (s.pr || /^Session \d+$/.test(s.title)) continue
+          api.getPrForBranch(s.cwd, s.title).then((pr) => {
+            if (cancelled || pr.state === 'none') return
+            setSessions((prev) => prev.map((x) => (x.id === s.id ? { ...x, pr } : x)))
+          })
         }
       }
 
@@ -179,7 +191,8 @@ export function useSessions() {
           alive: true,
           claudeSessionId: meta.claudeSessionId,
           activity: 'ready',
-          dormant: false
+          dormant: false,
+          pr: meta.pr
         })
       }
 
@@ -210,7 +223,8 @@ export function useSessions() {
         cwd: s.cwd,
         title: s.title,
         summary: s.summary,
-        claudeSessionId: s.claudeSessionId
+        claudeSessionId: s.claudeSessionId,
+        pr: s.pr
       })),
       activeSessionIndex: activeIdx >= 0 ? activeIdx : null,
       gridCols
@@ -248,7 +262,8 @@ export function useSessions() {
             cwd: s.cwd,
             title: s.title,
             summary: s.summary,
-            claudeSessionId: s.claudeSessionId
+            claudeSessionId: s.claudeSessionId,
+            pr: s.pr
           })),
           activeSessionId: r.activeSessionId(),
           gridCols: r.gridCols()
@@ -299,6 +314,19 @@ export function useSessions() {
             return { ...s, ...updates }
           })
         )
+
+        // Check for new PR when Claude finishes a turn (non-blocking)
+        if (state === 'ready') {
+          const session = sessionsRef.current.find((s) => s.claudeSessionId === claudeSessionId)
+          if (session && !session.pr && !/^Session \d+$/.test(session.title)) {
+            api.getPrForBranch(session.cwd, session.title).then((pr) => {
+              if (pr.state === 'none') return
+              setSessions((prev) =>
+                prev.map((s) => (s.claudeSessionId === claudeSessionId ? { ...s, pr } : s))
+              )
+            })
+          }
+        }
       }
     )
 
@@ -387,6 +415,16 @@ export function useSessions() {
       setSessions((prev) => [...prev, session])
       setActiveSessionId(id)
       setActiveProjectId(projectId)
+
+      // Look up PR for branch sessions (non-blocking)
+      if (branch) {
+        api.getPrForBranch(cwd, branch).then((pr) => {
+          if (pr.state !== 'none') {
+            setSessions((prev) => prev.map((s) => (s.id === id ? { ...s, pr } : s)))
+          }
+        })
+      }
+
       return id
     },
     [projects]

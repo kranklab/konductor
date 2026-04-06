@@ -60,6 +60,24 @@ export default function SessionTile({
               }`}
             />
             <span className="text-xs text-gray-400 truncate">{session.title}</span>
+            {session.pr && session.pr.state !== 'none' && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  window.konductorAPI.openExternal(session.pr!.url)
+                }}
+                className={`text-[10px] shrink-0 hover:underline ${
+                  session.pr.state === 'merged'
+                    ? 'text-purple-400'
+                    : session.pr.state === 'closed'
+                      ? 'text-red-400'
+                      : 'text-green-400'
+                }`}
+                title={`PR #${session.pr.number} (${session.pr.state})`}
+              >
+                #{session.pr.number}
+              </button>
+            )}
             <span className="text-[10px] text-gray-600 truncate">{session.cwd}</span>
           </div>
           <button

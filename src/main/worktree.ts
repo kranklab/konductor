@@ -165,6 +165,39 @@ export async function batchGetPrStatuses(cwd: string): Promise<Map<string, PrInf
   return result
 }
 
+/** Fetch PR info for a single branch. */
+export async function getPrForBranch(cwd: string, branch: string): Promise<PrInfo> {
+  const stdout = await ghSafe(
+    [
+      'pr',
+      'list',
+      '--head',
+      branch,
+      '--state',
+      'all',
+      '--json',
+      'state,number,url',
+      '--limit',
+      '1'
+    ],
+    cwd
+  )
+  if (!stdout) return NO_PR
+
+  try {
+    const prs = JSON.parse(stdout)
+    if (prs.length === 0) return NO_PR
+    const pr = prs[0]
+    return {
+      state: (pr.state as string).toLowerCase() as PrState,
+      number: pr.number,
+      url: pr.url
+    }
+  } catch {
+    return NO_PR
+  }
+}
+
 async function isWorktreeDirty(worktreePath: string): Promise<boolean> {
   const stdout = await gitSafe(['status', '--porcelain'], worktreePath)
   return stdout.trim().length > 0
