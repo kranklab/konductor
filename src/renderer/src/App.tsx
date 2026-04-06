@@ -369,9 +369,7 @@ function App(): React.JSX.Element {
           />
         )}
 
-        {effectiveViewMode === 'settings' && (
-          <SettingsView onBack={() => setViewMode('grid')} />
-        )}
+        {effectiveViewMode === 'settings' && <SettingsView onBack={() => setViewMode('grid')} />}
       </main>
 
       {worktreeProject && (

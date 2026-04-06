@@ -22,7 +22,12 @@ const levelBadgeColors: Record<LogEntry['level'], string> = {
 
 function formatTime(ts: number): string {
   const d = new Date(ts)
-  return d.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  return d.toLocaleTimeString('en-US', {
+    hour12: false,
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  })
 }
 
 export default function SettingsView({ onBack }: SettingsViewProps): React.JSX.Element {
@@ -105,14 +110,10 @@ export default function SettingsView({ onBack }: SettingsViewProps): React.JSX.E
                   {updateStatus === null && !checking && 'No update info yet'}
                   {checking && 'Checking for updates...'}
                   {updateStatus?.status === 'available' && (
-                    <span className="text-yellow-400">
-                      Downloading v{updateStatus.version}...
-                    </span>
+                    <span className="text-yellow-400">Downloading v{updateStatus.version}...</span>
                   )}
                   {updateStatus?.status === 'ready' && (
-                    <span className="text-accent">
-                      v{updateStatus.version} ready to install
-                    </span>
+                    <span className="text-accent">v{updateStatus.version} ready to install</span>
                   )}
                   {updateStatus?.status === 'error' && (
                     <span className="text-red-400">{updateStatus.message}</span>
