@@ -28,7 +28,7 @@ export default function BranchesView({ project, onBack }: BranchesViewProps): Re
     hasWorktree: boolean
   } | null>(null)
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (signal?: { cancelled: boolean }) => {
     setLoading(true)
     setError(null)
     try {
@@ -36,18 +36,24 @@ export default function BranchesView({ project, onBack }: BranchesViewProps): Re
         api.getBranchDetails(project.cwd),
         api.listWorktrees(project.cwd)
       ])
+      if (signal?.cancelled) return
       setBranches(br)
       setWorktrees(wt)
       setSelected(new Set())
     } catch (e) {
+      if (signal?.cancelled) return
       setError(e instanceof Error ? e.message : 'Failed to load branch data')
     } finally {
-      setLoading(false)
+      if (!signal?.cancelled) setLoading(false)
     }
   }, [project.cwd])
 
   useEffect(() => {
-    loadData()
+    const signal = { cancelled: false }
+    loadData(signal)
+    return () => {
+      signal.cancelled = true
+    }
   }, [loadData])
 
   const showAction = useCallback((msg: string) => {
