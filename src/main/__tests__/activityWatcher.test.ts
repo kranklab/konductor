@@ -37,9 +37,9 @@ vi.mock('chokidar', () => ({
 // ─── fs/promises mock ────────────────────────────────────────────────
 
 const mockReadFile = vi.fn<(path: string, encoding: string) => Promise<string>>()
-const mockMkdir = vi.fn<(path: string, opts: unknown) => Promise<void>>().mockResolvedValue(
-  undefined
-)
+const mockMkdir = vi
+  .fn<(path: string, opts: unknown) => Promise<void>>()
+  .mockResolvedValue(undefined)
 const mockUnlink = vi.fn<(path: string) => Promise<void>>().mockResolvedValue(undefined)
 
 vi.mock('fs/promises', () => ({
@@ -175,9 +175,7 @@ describe('session request handling', () => {
       })
     )
 
-    await requestWatcher._callbacks['add'](
-      '/tmp/test-konductor-state/session-requests/req-1.json'
-    )
+    await requestWatcher._callbacks['add']('/tmp/test-konductor-state/session-requests/req-1.json')
 
     expect(mockWindow.webContents.send).toHaveBeenCalledWith('session-request', {
       cwd: '/home/user/project',
@@ -201,9 +199,7 @@ describe('session request handling', () => {
       })
     )
 
-    await requestWatcher._callbacks['add'](
-      '/tmp/test-konductor-state/session-requests/req-2.json'
-    )
+    await requestWatcher._callbacks['add']('/tmp/test-konductor-state/session-requests/req-2.json')
 
     expect(mockWindow.webContents.send).toHaveBeenCalledWith('session-request', {
       cwd: '/home/user/project',
@@ -299,9 +295,7 @@ describe('session request handling', () => {
     await startAndFlush()
     const requestWatcher = mockWatchers[1]
 
-    await requestWatcher._callbacks['add'](
-      '/tmp/test-konductor-state/session-requests/readme.txt'
-    )
+    await requestWatcher._callbacks['add']('/tmp/test-konductor-state/session-requests/readme.txt')
 
     expect(mockReadFile).not.toHaveBeenCalled()
   })
@@ -345,9 +339,7 @@ describe('session request handling', () => {
 
     // Should not throw
     await expect(
-      requestWatcher._callbacks['add'](
-        '/tmp/test-konductor-state/session-requests/req-4.json'
-      )
+      requestWatcher._callbacks['add']('/tmp/test-konductor-state/session-requests/req-4.json')
     ).resolves.toBeUndefined()
 
     expect(mockWindow.webContents.send).toHaveBeenCalled()

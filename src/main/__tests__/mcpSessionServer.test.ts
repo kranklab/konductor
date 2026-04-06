@@ -45,7 +45,7 @@ function callServer(message: unknown, env?: Record<string, string>): Promise<unk
         } else {
           resolve(JSON.parse(lines[lines.length - 1]))
         }
-      } catch (err) {
+      } catch {
         reject(new Error(`Failed to parse server output: ${stdout}`))
       }
     })

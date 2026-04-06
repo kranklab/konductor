@@ -328,9 +328,7 @@ export function useSessions() {
             return
           }
         } else {
-          const sessionCount = sessionsRef.current.filter(
-            (s) => s.projectId === project.id
-          ).length
+          const sessionCount = sessionsRef.current.filter((s) => s.projectId === project.id).length
           title = `Session ${sessionCount + 1}`
         }
 
