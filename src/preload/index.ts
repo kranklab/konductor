@@ -54,6 +54,7 @@ export interface KonductorAPI {
   onSessionActivity: (
     cb: (claudeSessionId: string, state: ActivityState, tool: string, summary: string) => void
   ) => () => void
+  onSessionRequest: (cb: (cwd: string, plan: string, branch?: string) => void) => () => void
   getGitHubRepo: (cwd: string) => Promise<GitHubRepo | null>
   listPullRequests: (cwd: string, state: string) => Promise<GitHubPR[]>
   listIssues: (cwd: string, state: string) => Promise<GitHubIssue[]>
@@ -181,6 +182,17 @@ const api: KonductorAPI = {
     }
     ipcRenderer.on('session-activity', handler)
     return () => ipcRenderer.removeListener('session-activity', handler)
+  },
+
+  onSessionRequest: (cb: (cwd: string, plan: string, branch?: string) => void) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      payload: { cwd: string; plan: string; branch?: string }
+    ): void => {
+      cb(payload.cwd, payload.plan, payload.branch)
+    }
+    ipcRenderer.on('session-request', handler)
+    return () => ipcRenderer.removeListener('session-request', handler)
   },
   getGitHubRepo: (cwd: string) => ipcRenderer.invoke('get-github-repo', cwd),
   listPullRequests: (cwd: string, state: string) =>
