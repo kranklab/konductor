@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "Claude Code Session Manager — manage multiple Claude Code terminal sessions from a single UI",
   "main": "./out/main/index.js",
+  "license": "MIT",
   "author": "kranklab",
   "scripts": {
     "test": "vitest run",
