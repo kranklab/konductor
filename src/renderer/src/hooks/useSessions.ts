@@ -88,11 +88,15 @@ export function useSessions() {
   // It becomes true only after all async initialization (disk load OR HMR restore) completes.
   const [ready, setReady] = useState(false)
   const sessionsRef = useRef<Session[]>([])
+  const projectsRef = useRef<Project[]>([])
 
-  // Keep ref in sync
+  // Keep refs in sync
   useEffect(() => {
     sessionsRef.current = sessions
   }, [sessions])
+  useEffect(() => {
+    projectsRef.current = projects
+  }, [projects])
 
   // ─── Cold start: load from disk ─────────────────────────────────────
   useEffect(() => {
@@ -302,10 +306,67 @@ export function useSessions() {
       }
     )
 
+    // Handle MCP-initiated session requests (e.g. start_session tool)
+    const unsubRequest = api.onSessionRequest(
+      async (cwd: string, plan: string, branch?: string) => {
+        // Find a project whose cwd matches (or is a parent of) the request cwd
+        const project = projectsRef.current.find(
+          (p) => cwd === p.cwd || cwd.startsWith(p.cwd + '/')
+        )
+        if (!project) return
+
+        // If a branch was requested, create a new worktree first
+        let sessionCwd = cwd
+        let title: string
+        if (branch) {
+          try {
+            const wt = await api.createWorktree(project.cwd, branch, true, true)
+            sessionCwd = wt.path
+            title = branch
+          } catch (err) {
+            console.error('[session-request] Failed to create worktree:', err)
+            return
+          }
+        } else {
+          const sessionCount = sessionsRef.current.filter(
+            (s) => s.projectId === project.id
+          ).length
+          title = `Session ${sessionCount + 1}`
+        }
+
+        const { id, claudeSessionId } = await api.createSession(sessionCwd, {
+          name: title,
+          prompt: plan,
+          envScript: project.envScript
+        })
+
+        const terminal = createTerminal()
+        terminal.onData((data) => api.writeToSession(id, data))
+
+        const session: Session = {
+          id,
+          projectId: project.id,
+          cwd: sessionCwd,
+          title,
+          summary: '',
+          terminal,
+          alive: true,
+          claudeSessionId,
+          activity: 'ready',
+          dormant: false
+        }
+
+        setSessions((prev) => [...prev, session])
+        setActiveSessionId(id)
+        setActiveProjectId(project.id)
+      }
+    )
+
     return () => {
       unsubOutput()
       unsubExit()
       unsubActivity()
+      unsubRequest()
     }
   }, [ready])
 
