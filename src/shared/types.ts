@@ -60,6 +60,7 @@ export interface BranchDetail {
   aheadCount: number
   dirty: boolean
   pr: PrInfo
+  remoteOnly: boolean
 }
 
 export interface BranchFile {

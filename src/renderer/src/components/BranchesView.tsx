@@ -807,6 +807,15 @@ function BranchRow({
               </span>
             )}
 
+            {branch.remoteOnly && (
+              <span
+                className="text-[9px] px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 cursor-help"
+                title="Remote: This branch only exists on the remote — no local checkout"
+              >
+                remote
+              </span>
+            )}
+
             {stale && (
               <span
                 className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 cursor-help"
