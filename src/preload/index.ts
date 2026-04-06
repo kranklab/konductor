@@ -3,7 +3,7 @@ import type { ChangedFile } from '../main/fileWatcher'
 import type { ActivityState } from '../main/activityWatcher'
 import type { SessionInfo } from '../main/sessionManager'
 import type { PersistedState } from '../main/store'
-import type { WorktreeInfo, BranchDetail, BranchFile } from '../shared/types'
+import type { WorktreeInfo, BranchDetail, BranchFile, PrInfo } from '../shared/types'
 import type { GitHubRepo, GitHubPR, GitHubIssue } from '../shared/types'
 
 export type UpdateStatus = { status: 'available' | 'ready'; version: string }
@@ -67,6 +67,7 @@ export interface KonductorAPI {
     source: 'committed' | 'uncommitted',
     worktreePath: string
   ) => Promise<string>
+  getPrForBranch: (cwd: string, branch: string) => Promise<PrInfo>
 
   // Shell terminals
   createTerminal: (sessionId: string, cwd: string, envScript?: string) => Promise<{ id: string }>
@@ -208,6 +209,8 @@ const api: KonductorAPI = {
     source: 'committed' | 'uncommitted',
     worktreePath: string
   ) => ipcRenderer.invoke('get-branch-diff', cwd, branch, filePath, source, worktreePath),
+  getPrForBranch: (cwd: string, branch: string) =>
+    ipcRenderer.invoke('get-pr-for-branch', cwd, branch),
 
   // Shell terminals
   createTerminal: (sessionId: string, cwd: string, envScript?: string) =>

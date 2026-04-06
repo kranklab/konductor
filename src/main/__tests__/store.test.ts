@@ -105,6 +105,35 @@ describe('loadState', () => {
 
     expect(state.projects).toEqual([])
   })
+
+  it('preserves pr field on sessions', async () => {
+    const stored: PersistedState = {
+      projects: [],
+      activeProjectId: null,
+      nextProjectId: 1,
+      sessions: [
+        {
+          projectId: 'project-1',
+          cwd: '/tmp/test',
+          title: 'feature-x',
+          summary: '',
+          claudeSessionId: 'abc-123',
+          pr: { state: 'open', number: 42, url: 'https://github.com/org/repo/pull/42' }
+        }
+      ],
+      activeSessionIndex: 0,
+      gridCols: 2
+    }
+    mockedReadFile.mockResolvedValue(JSON.stringify(stored))
+
+    const state = await loadState()
+
+    expect(state.sessions[0].pr).toEqual({
+      state: 'open',
+      number: 42,
+      url: 'https://github.com/org/repo/pull/42'
+    })
+  })
 })
 
 describe('saveState', () => {

@@ -1,4 +1,5 @@
 import type { Terminal } from '@xterm/xterm'
+import type { PrInfo } from '../../shared/types'
 
 export type ViewMode = 'grid' | 'focus' | 'branches' | 'github'
 
@@ -23,6 +24,8 @@ export interface Session {
   activity: ActivityState
   /** Session metadata loaded from disk but not yet spawned */
   dormant: boolean
+  /** PR associated with the session's branch (if any) */
+  pr?: PrInfo
 }
 
 export interface ShellTerminal {

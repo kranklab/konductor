@@ -14,7 +14,8 @@ import {
   listWorktrees,
   listBranches,
   getBranchFiles,
-  batchGetPrStatuses
+  batchGetPrStatuses,
+  getPrForBranch
 } from '../worktree'
 
 const mockedExecFile = vi.mocked(execFile)
@@ -343,5 +344,73 @@ describe('batchGetPrStatuses', () => {
 
     expect(result.size).toBe(1)
     expect(result.has('valid')).toBe(true)
+  })
+})
+
+// ─── getPrForBranch ──────────────────────────────────────────────────
+
+describe('getPrForBranch', () => {
+  it('returns PR info for a branch with an open PR', async () => {
+    mockExecFileOnce(
+      null,
+      JSON.stringify([{ state: 'OPEN', number: 42, url: 'https://github.com/org/repo/pull/42' }])
+    )
+
+    const pr = await getPrForBranch('/repo', 'feature-x')
+
+    expect(pr).toEqual({
+      state: 'open',
+      number: 42,
+      url: 'https://github.com/org/repo/pull/42'
+    })
+  })
+
+  it('returns PR info for a merged PR', async () => {
+    mockExecFileOnce(
+      null,
+      JSON.stringify([{ state: 'MERGED', number: 10, url: 'https://github.com/org/repo/pull/10' }])
+    )
+
+    const pr = await getPrForBranch('/repo', 'old-branch')
+
+    expect(pr.state).toBe('merged')
+    expect(pr.number).toBe(10)
+  })
+
+  it('returns none when no PR exists for branch', async () => {
+    mockExecFileOnce(null, '[]')
+
+    const pr = await getPrForBranch('/repo', 'no-pr-branch')
+
+    expect(pr).toEqual({ state: 'none', number: 0, url: '' })
+  })
+
+  it('returns none when gh fails', async () => {
+    mockExecFileOnce(new Error('gh not found'), '')
+
+    const pr = await getPrForBranch('/repo', 'feature-x')
+
+    expect(pr).toEqual({ state: 'none', number: 0, url: '' })
+  })
+
+  it('returns none on malformed JSON', async () => {
+    mockExecFileOnce(null, 'not json{{{')
+
+    const pr = await getPrForBranch('/repo', 'feature-x')
+
+    expect(pr).toEqual({ state: 'none', number: 0, url: '' })
+  })
+
+  it('passes --head flag with branch name', async () => {
+    mockExecFileOnce(null, '[]')
+
+    await getPrForBranch('/repo', 'my-branch')
+
+    expect(mockedExecFile).toHaveBeenCalledWith(
+      'gh',
+      expect.arrayContaining(['--head', 'my-branch']),
+      expect.any(Object),
+      expect.any(Function)
+    )
   })
 })

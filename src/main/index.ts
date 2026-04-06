@@ -38,7 +38,8 @@ import {
   deleteRemoteBranch,
   fetchPrune,
   getBranchFiles,
-  getBranchDiff
+  getBranchDiff,
+  getPrForBranch
 } from './worktree'
 import { getGitHubRepo, listPullRequests, listIssues } from './github'
 import {
@@ -322,6 +323,10 @@ function registerWorktreeHandlers(ipc: typeof ipcMain): void {
       return getBranchDiff(cwd, branch, filePath, source, worktreePath)
     }
   )
+
+  ipc.handle('get-pr-for-branch', (_event, cwd: string, branch: string) => {
+    return getPrForBranch(cwd, branch)
+  })
 }
 
 function registerGitHubHandlers(ipc: typeof ipcMain): void {
