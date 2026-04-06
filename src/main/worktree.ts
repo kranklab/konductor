@@ -194,7 +194,7 @@ export function parseBranchLine(line: string): {
 }
 
 export async function getBranchDetails(cwd: string): Promise<BranchDetail[]> {
-  const SEP = '%x00'
+  const SEP = '%00'
   const format = [
     '%(refname:short)',
     '%(HEAD)',
@@ -206,7 +206,13 @@ export async function getBranchDetails(cwd: string): Promise<BranchDetail[]> {
   ].join(SEP)
 
   const stdout = await git(
-    ['branch', '--all', `--format=${format}`, '--sort=-committerdate'],
+    [
+      'for-each-ref',
+      `--format=${format}`,
+      '--sort=-committerdate',
+      'refs/heads/',
+      'refs/remotes/'
+    ],
     cwd
   )
 
