@@ -1,6 +1,7 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import type { Session, ShellTerminal, ChangedFile } from '../types'
 import { useTerminalMount } from '../hooks/useTerminalMount'
+import { stripAnsi } from '../../../shared/stripAnsi'
 import TerminalPanel from './TerminalPanel'
 import ChangesPanel from './ChangesPanel'
 
@@ -45,6 +46,17 @@ export default function FocusView({
   const containerRef = useRef<HTMLDivElement>(null)
 
   useTerminalMount(containerRef, session, onResize, { clearContainer: true, autoFocus: true })
+
+  const handleSendToSession = useCallback(
+    async (terminalId: string) => {
+      const raw = await window.konductorAPI.getTerminalScrollback(terminalId)
+      const clean = stripAnsi(raw).trimEnd()
+      if (!clean) return
+      const message = `Here is the output from my shell terminal:\n\n\`\`\`\n${clean}\n\`\`\`\n`
+      window.konductorAPI.writeToSession(session.id, message + '\n')
+    },
+    [session.id]
+  )
 
   return (
     <div className="h-full flex flex-col">
@@ -231,6 +243,7 @@ export default function FocusView({
                   onKillTerminal={onKillTerminal}
                   onResize={onResizeTerminal}
                   onCollapse={() => setTerminalCollapsed(true)}
+                  onSendToSession={handleSendToSession}
                 />
               </div>
             )}
