@@ -18,7 +18,7 @@ Claude Code Session Manager — manage multiple Claude Code terminal sessions fr
 ### Prerequisites
 
 - [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) installed and available in your shell PATH
-- [Node.js](https://nodejs.org/) (v18+)
+- [GitHub CLI (`gh`)](https://cli.github.com/) installed and authenticated — used for listing pull requests and issues
 
 ### Quick Start
 
@@ -53,6 +53,10 @@ chmod +x konductor.AppImage
 ```
 
 ## Development
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) (v18+)
 
 ### Setup
 
