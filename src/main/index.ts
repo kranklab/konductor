@@ -1,5 +1,6 @@
 import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
 import { autoUpdater } from 'electron-updater'
+import { log } from './logger'
 
 if (process.platform === 'linux') {
   app.commandLine.appendSwitch('no-sandbox')
@@ -201,7 +202,7 @@ function registerSessionHandlers(ipc: typeof ipcMain, window: BrowserWindow): vo
         }
         context = snippets.join('\n\n')
       } catch (err) {
-        console.warn('[summary] Failed to read transcript:', (err as Error).message)
+        log.warn('summary', `Failed to read transcript: ${(err as Error).message}`)
       }
 
       if (!context) return ''
@@ -215,7 +216,7 @@ function registerSessionHandlers(ipc: typeof ipcMain, window: BrowserWindow): vo
           { env: getEnv(), timeout: 15000 },
           (err, stdout) => {
             if (err || !stdout) {
-              if (err) console.warn('[summary] Claude CLI failed:', (err as Error).message)
+              if (err) log.warn('summary', `Claude CLI failed: ${(err as Error).message}`)
               resolve('')
               return
             }
@@ -259,7 +260,7 @@ function registerFileHandlers(ipc: typeof ipcMain): void {
       } else {
         execFile('git', ['diff', 'HEAD', '--', filePath], { cwd }, (err, stdout) => {
           if (err && !stdout) {
-            console.warn('[diff] git diff failed for', filePath, (err as Error).message)
+            log.warn('diff', `git diff failed for ${filePath}: ${(err as Error).message}`)
             resolve('')
             return
           }
@@ -376,6 +377,18 @@ function registerUpdateHandlers(ipc: typeof ipcMain): void {
   ipc.on('install-update', () => {
     autoUpdater.quitAndInstall()
   })
+  ipc.on('check-for-updates', () => {
+    if (is.dev) {
+      log.warn('updater', 'Auto-update is not available in development mode')
+      mainWindow?.webContents.send('update-status', {
+        status: 'error',
+        message: 'Auto-update is not available in development mode'
+      })
+      return
+    }
+    autoUpdater.checkForUpdates()
+  })
+  ipc.handle('get-logs', () => log.getHistory())
 }
 
 // ─── App Lifecycle ────────────────────────────────────────────────────
@@ -388,6 +401,8 @@ app.whenReady().then(() => {
   })
 
   createWindow()
+  log.setWindow(mainWindow!)
+  log.info('app', `Konductor started (${is.dev ? 'dev' : 'production'})`)
 
   registerStateHandlers(ipcMain)
   registerSessionHandlers(ipcMain, mainWindow!)
@@ -403,30 +418,37 @@ app.whenReady().then(() => {
     autoUpdater.autoDownload = true
     autoUpdater.autoInstallOnAppQuit = true
 
-    autoUpdater.on('checking-for-update', () => console.log('[updater] Checking for update…'))
+    autoUpdater.on('checking-for-update', () => log.info('updater', 'Checking for update…'))
     autoUpdater.on('update-available', (info) => {
-      console.log(`[updater] Update available: ${info.version}`)
+      log.info('updater', `Update available: ${info.version}`)
       mainWindow?.webContents.send('update-status', {
         status: 'available',
         version: info.version
       })
     })
     autoUpdater.on('update-not-available', (info) =>
-      console.log(`[updater] Up to date (${info.version})`)
+      log.info('updater', `Up to date (${info.version})`)
     )
     autoUpdater.on('download-progress', (p) =>
-      console.log(`[updater] Downloading: ${Math.round(p.percent)}%`)
+      log.info('updater', `Downloading: ${Math.round(p.percent)}%`)
     )
     autoUpdater.on('update-downloaded', (info) => {
-      console.log(`[updater] Update downloaded: ${info.version} — will install on quit`)
+      log.info('updater', `Update downloaded: ${info.version} — will install on quit`)
       mainWindow?.webContents.send('update-status', {
         status: 'ready',
         version: info.version
       })
     })
-    autoUpdater.on('error', (err) => console.error('[updater] Error:', err.message))
+    autoUpdater.on('error', (err) => {
+      log.error('updater', err.message)
+      mainWindow?.webContents.send('update-status', {
+        status: 'error',
+        message: err.message
+      })
+    })
 
-    autoUpdater.checkForUpdatesAndNotify()
+    autoUpdater.checkForUpdates()
+    setInterval(() => autoUpdater.checkForUpdates(), 30 * 60 * 1000)
   }
 
   app.on('activate', () => {

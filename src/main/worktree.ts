@@ -1,4 +1,5 @@
 import { execFile } from 'child_process'
+import { log } from './logger'
 import { join } from 'path'
 import { mkdir } from 'fs/promises'
 import type { WorktreeInfo, BranchDetail, PrInfo, PrState, BranchFile } from '../shared/types'
@@ -30,7 +31,7 @@ function ghSafe(args: string[], cwd: string): Promise<string> {
   return new Promise((resolve) => {
     execFile('gh', args, { cwd }, (err, stdout) => {
       if (err) {
-        console.warn('[gh]', args.slice(0, 3).join(' '), 'failed:', (err as Error).message)
+        log.warn('gh', `${args.slice(0, 3).join(' ')} failed: ${(err as Error).message}`)
         resolve('')
       } else {
         resolve((stdout || '').trim())
