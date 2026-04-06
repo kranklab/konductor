@@ -206,13 +206,7 @@ export async function getBranchDetails(cwd: string): Promise<BranchDetail[]> {
   ].join(SEP)
 
   const stdout = await git(
-    [
-      'for-each-ref',
-      `--format=${format}`,
-      '--sort=-committerdate',
-      'refs/heads/',
-      'refs/remotes/'
-    ],
+    ['for-each-ref', `--format=${format}`, '--sort=-committerdate', 'refs/heads/', 'refs/remotes/'],
     cwd
   )
 
@@ -292,9 +286,7 @@ export async function getBranchDetails(cwd: string): Promise<BranchDetail[]> {
         const shortName = obj.name.replace(/^origin\//, '')
         const isMain = obj.name === mainBranch
 
-        const aheadCount = isMain
-          ? 0
-          : await getAheadCount(cwd, obj.name, mainBranch)
+        const aheadCount = isMain ? 0 : await getAheadCount(cwd, obj.name, mainBranch)
 
         const pr = prStatuses.get(shortName) ?? NO_PR
 
