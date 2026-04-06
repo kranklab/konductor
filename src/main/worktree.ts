@@ -227,7 +227,7 @@ export function parseBranchLine(line: string): {
 }
 
 export async function getBranchDetails(cwd: string): Promise<BranchDetail[]> {
-  const SEP = '%x00'
+  const SEP = '%00'
   const format = [
     '%(refname:short)',
     '%(HEAD)',
@@ -238,7 +238,10 @@ export async function getBranchDetails(cwd: string): Promise<BranchDetail[]> {
     '%(subject)'
   ].join(SEP)
 
-  const stdout = await git(['branch', `--format=${format}`, '--sort=-committerdate'], cwd)
+  const stdout = await git(
+    ['for-each-ref', `--format=${format}`, '--sort=-committerdate', 'refs/heads/', 'refs/remotes/'],
+    cwd
+  )
 
   let worktrees: WorktreeInfo[] = []
   try {
@@ -259,8 +262,24 @@ export async function getBranchDetails(cwd: string): Promise<BranchDetail[]> {
     .map((line) => parseBranchLine(line))
     .filter((obj) => obj !== null)
 
-  const branches: BranchDetail[] = await Promise.all(
-    parsed.map(async (obj) => {
+  // Separate local and remote entries. Remote refs start with "origin/".
+  const localEntries: typeof parsed = []
+  const remoteEntries: typeof parsed = []
+  for (const obj of parsed) {
+    if (obj.name.startsWith('origin/')) {
+      // Skip origin/HEAD pointer
+      if (obj.name === 'origin/HEAD') continue
+      remoteEntries.push(obj)
+    } else {
+      localEntries.push(obj)
+    }
+  }
+
+  const localNames = new Set(localEntries.map((e) => e.name))
+
+  // Build details for local branches
+  const localBranches: BranchDetail[] = await Promise.all(
+    localEntries.map(async (obj) => {
       const name: string = obj.name
       const worktreePath = wtByBranch.get(name) || ''
       const isMain = name === mainBranch
@@ -283,12 +302,45 @@ export async function getBranchDetails(cwd: string): Promise<BranchDetail[]> {
         worktreePath,
         aheadCount,
         dirty,
-        pr
+        pr,
+        remoteOnly: false
       }
     })
   )
 
-  return branches
+  // Build details for remote-only branches (no local counterpart)
+  const remoteBranches: BranchDetail[] = await Promise.all(
+    remoteEntries
+      .filter((obj) => {
+        const shortName = obj.name.replace(/^origin\//, '')
+        return !localNames.has(shortName)
+      })
+      .map(async (obj) => {
+        const shortName = obj.name.replace(/^origin\//, '')
+        const isMain = obj.name === mainBranch
+
+        const aheadCount = isMain ? 0 : await getAheadCount(cwd, obj.name, mainBranch)
+
+        const pr = prStatuses.get(shortName) ?? NO_PR
+
+        return {
+          name: shortName,
+          isHead: false,
+          upstream: obj.name,
+          gone: false,
+          lastCommitDate: obj.date || '',
+          lastCommitRelative: obj.relative || '',
+          lastCommitSubject: obj.subject || '',
+          worktreePath: '',
+          aheadCount,
+          dirty: false,
+          pr,
+          remoteOnly: true
+        }
+      })
+  )
+
+  return [...localBranches, ...remoteBranches]
 }
 
 /** List files changed on a branch (committed vs origin/main + uncommitted in worktree) */

@@ -28,26 +28,35 @@ export default function BranchesView({ project, onBack }: BranchesViewProps): Re
     hasWorktree: boolean
   } | null>(null)
 
-  const loadData = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const [br, wt] = await Promise.all([
-        api.getBranchDetails(project.cwd),
-        api.listWorktrees(project.cwd)
-      ])
-      setBranches(br)
-      setWorktrees(wt)
-      setSelected(new Set())
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load branch data')
-    } finally {
-      setLoading(false)
-    }
-  }, [project.cwd])
+  const loadData = useCallback(
+    async (signal?: { cancelled: boolean }) => {
+      setLoading(true)
+      setError(null)
+      try {
+        const [br, wt] = await Promise.all([
+          api.getBranchDetails(project.cwd),
+          api.listWorktrees(project.cwd)
+        ])
+        if (signal?.cancelled) return
+        setBranches(br)
+        setWorktrees(wt)
+        setSelected(new Set())
+      } catch (e) {
+        if (signal?.cancelled) return
+        setError(e instanceof Error ? e.message : 'Failed to load branch data')
+      } finally {
+        if (!signal?.cancelled) setLoading(false)
+      }
+    },
+    [project.cwd]
+  )
 
   useEffect(() => {
-    loadData()
+    const signal = { cancelled: false }
+    loadData(signal)
+    return () => {
+      signal.cancelled = true
+    }
   }, [loadData])
 
   const showAction = useCallback((msg: string) => {
@@ -798,6 +807,15 @@ function BranchRow({
                 title="HEAD: The currently checked-out branch in this worktree"
               >
                 HEAD
+              </span>
+            )}
+
+            {branch.remoteOnly && (
+              <span
+                className="text-[9px] px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 cursor-help"
+                title="Remote: This branch only exists on the remote — no local checkout"
+              >
+                remote
               </span>
             )}
 
