@@ -7,7 +7,7 @@ import type { WorktreeInfo, BranchDetail, BranchFile, PrInfo } from '../shared/t
 import type { GitHubRepo, GitHubPR, GitHubIssue } from '../shared/types'
 
 export type UpdateStatus =
-  | { status: 'available' | 'ready'; version: string }
+  | { status: 'available' | 'ready' | 'up-to-date'; version: string }
   | { status: 'error'; message: string }
 
 export interface LogEntry {

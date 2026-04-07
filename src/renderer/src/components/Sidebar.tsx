@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import type { UpdateStatus } from '../../../preload/index'
 import type { Project, Session, ViewMode } from '../types'
 import logoSvg from '../assets/logo.svg'
 
@@ -442,9 +443,7 @@ function EnvScriptSection({
 }
 
 function VersionIndicator(): React.JSX.Element {
-  const [update, setUpdate] = useState<
-    { status: 'available' | 'ready'; version: string } | { status: 'error'; message: string } | null
-  >(null)
+  const [update, setUpdate] = useState<UpdateStatus | null>(null)
 
   useEffect(() => {
     return window.konductorAPI.onUpdateStatus((info) => setUpdate(info))
