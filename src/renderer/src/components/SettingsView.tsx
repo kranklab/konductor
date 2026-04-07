@@ -115,6 +115,9 @@ export default function SettingsView({ onBack }: SettingsViewProps): React.JSX.E
                   {updateStatus?.status === 'ready' && (
                     <span className="text-accent">v{updateStatus.version} ready to install</span>
                   )}
+                  {updateStatus?.status === 'up-to-date' && (
+                    <span className="text-green-400">Up to date (v{updateStatus.version})</span>
+                  )}
                   {updateStatus?.status === 'error' && (
                     <span className="text-red-400">{updateStatus.message}</span>
                   )}

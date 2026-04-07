@@ -426,9 +426,13 @@ app.whenReady().then(() => {
         version: info.version
       })
     })
-    autoUpdater.on('update-not-available', (info) =>
+    autoUpdater.on('update-not-available', (info) => {
       log.info('updater', `Up to date (${info.version})`)
-    )
+      mainWindow?.webContents.send('update-status', {
+        status: 'up-to-date',
+        version: info.version
+      })
+    })
     autoUpdater.on('download-progress', (p) =>
       log.info('updater', `Downloading: ${Math.round(p.percent)}%`)
     )
