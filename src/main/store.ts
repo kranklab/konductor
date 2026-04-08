@@ -23,6 +23,20 @@ export interface SessionData {
   issue?: IssueInfo
 }
 
+export interface AutoSummarySettings {
+  enabled: boolean
+  /** Minimum seconds between AI summary regenerations per session */
+  debounceSeconds: number
+  /** Minimum Claude turns before first auto-summary (and between re-generations) */
+  minTurns: number
+}
+
+export const DEFAULT_AUTO_SUMMARY: AutoSummarySettings = {
+  enabled: true,
+  debounceSeconds: 30,
+  minTurns: 3
+}
+
 export interface PersistedState {
   projects: ProjectData[]
   activeProjectId: string | null
@@ -30,6 +44,7 @@ export interface PersistedState {
   sessions: SessionData[]
   activeSessionIndex: number | null
   gridCols?: 1 | 2
+  autoSummary?: AutoSummarySettings
 }
 
 const DEFAULT_STATE: PersistedState = {
@@ -38,20 +53,35 @@ const DEFAULT_STATE: PersistedState = {
   nextProjectId: 1,
   sessions: [],
   activeSessionIndex: null,
-  gridCols: 2
+  gridCols: 2,
+  autoSummary: DEFAULT_AUTO_SUMMARY
 }
 
 export async function loadState(): Promise<PersistedState> {
   try {
     const raw = await readFile(STATE_FILE, 'utf-8')
     const parsed = JSON.parse(raw) as Partial<PersistedState>
+    const rawAuto = parsed.autoSummary
+    const autoSummary: AutoSummarySettings = {
+      enabled: typeof rawAuto?.enabled === 'boolean' ? rawAuto.enabled : DEFAULT_AUTO_SUMMARY.enabled,
+      debounceSeconds:
+        typeof rawAuto?.debounceSeconds === 'number' && rawAuto.debounceSeconds >= 0
+          ? rawAuto.debounceSeconds
+          : DEFAULT_AUTO_SUMMARY.debounceSeconds,
+      minTurns:
+        typeof rawAuto?.minTurns === 'number' && rawAuto.minTurns >= 1
+          ? rawAuto.minTurns
+          : DEFAULT_AUTO_SUMMARY.minTurns
+    }
+
     return {
       projects: Array.isArray(parsed.projects) ? parsed.projects : [],
       activeProjectId: parsed.activeProjectId ?? null,
       nextProjectId: typeof parsed.nextProjectId === 'number' ? parsed.nextProjectId : 1,
       sessions: Array.isArray(parsed.sessions) ? parsed.sessions : [],
       activeSessionIndex: parsed.activeSessionIndex ?? null,
-      gridCols: parsed.gridCols === 1 ? 1 : 2
+      gridCols: parsed.gridCols === 1 ? 1 : 2,
+      autoSummary
     }
   } catch {
     return { ...DEFAULT_STATE }

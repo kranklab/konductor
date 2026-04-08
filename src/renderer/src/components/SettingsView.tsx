@@ -1,11 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { ChevronLeftIcon, RefreshIcon } from './Icons'
 import type { UpdateStatus, LogEntry } from '../../../preload/index'
+import type { AutoSummarySettings } from '../../../main/store'
 
 const api = window.konductorAPI
 
 interface SettingsViewProps {
   onBack: () => void
+  autoSummary: AutoSummarySettings
+  onAutoSummaryChange: (settings: AutoSummarySettings) => void
 }
 
 const levelColors: Record<LogEntry['level'], string> = {
@@ -30,7 +33,11 @@ function formatTime(ts: number): string {
   })
 }
 
-export default function SettingsView({ onBack }: SettingsViewProps): React.JSX.Element {
+export default function SettingsView({
+  onBack,
+  autoSummary,
+  onAutoSummaryChange
+}: SettingsViewProps): React.JSX.Element {
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null)
   const [checking, setChecking] = useState(false)
   const [logs, setLogs] = useState<LogEntry[]>([])
@@ -148,6 +155,80 @@ export default function SettingsView({ onBack }: SettingsViewProps): React.JSX.E
               <div className="w-full bg-surface rounded-full h-1">
                 <div className="bg-yellow-400 h-1 rounded-full animate-pulse w-2/3" />
               </div>
+            )}
+          </div>
+        </section>
+
+        {/* Auto Summary Section */}
+        <section>
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+            Auto Summary
+          </h3>
+          <div className="bg-surface-raised border border-surface-border rounded-lg p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm text-gray-200">Enable auto-summary</div>
+                <div className="text-[10px] text-gray-600 mt-0.5">
+                  Automatically regenerate session summaries using AI as the conversation develops
+                </div>
+              </div>
+              <button
+                onClick={() =>
+                  onAutoSummaryChange({ ...autoSummary, enabled: !autoSummary.enabled })
+                }
+                className={`relative w-9 h-5 rounded-full transition-colors ${autoSummary.enabled ? 'bg-accent' : 'bg-gray-600'}`}
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${autoSummary.enabled ? 'translate-x-4' : ''}`}
+                />
+              </button>
+            </div>
+
+            {autoSummary.enabled && (
+              <>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm text-gray-200">Debounce interval</div>
+                    <div className="text-[10px] text-gray-600 mt-0.5">
+                      Minimum seconds between summary regenerations per session
+                    </div>
+                  </div>
+                  <input
+                    type="number"
+                    min={0}
+                    max={600}
+                    value={autoSummary.debounceSeconds}
+                    onChange={(e) => {
+                      const v = parseInt(e.target.value, 10)
+                      if (!isNaN(v) && v >= 0)
+                        onAutoSummaryChange({ ...autoSummary, debounceSeconds: v })
+                    }}
+                    className="w-20 bg-surface border border-surface-border rounded px-2 py-1 text-sm text-gray-200 text-right focus:outline-none focus:border-gray-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm text-gray-200">Minimum turns</div>
+                    <div className="text-[10px] text-gray-600 mt-0.5">
+                      Claude turns required before generating a summary (resets after each
+                      generation)
+                    </div>
+                  </div>
+                  <input
+                    type="number"
+                    min={1}
+                    max={50}
+                    value={autoSummary.minTurns}
+                    onChange={(e) => {
+                      const v = parseInt(e.target.value, 10)
+                      if (!isNaN(v) && v >= 1)
+                        onAutoSummaryChange({ ...autoSummary, minTurns: v })
+                    }}
+                    className="w-20 bg-surface border border-surface-border rounded px-2 py-1 text-sm text-gray-200 text-right focus:outline-none focus:border-gray-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                </div>
+              </>
             )}
           </div>
         </section>

@@ -8,7 +8,7 @@ vi.mock('fs/promises', () => ({
 }))
 
 import { readFile, writeFile, rename, mkdir } from 'fs/promises'
-import { loadState, saveState, type PersistedState } from '../store'
+import { loadState, saveState, DEFAULT_AUTO_SUMMARY, type PersistedState } from '../store'
 
 const mockedReadFile = vi.mocked(readFile)
 const mockedWriteFile = vi.mocked(writeFile)
@@ -34,7 +34,8 @@ describe('loadState', () => {
       nextProjectId: 1,
       sessions: [],
       activeSessionIndex: null,
-      gridCols: 2
+      gridCols: 2,
+      autoSummary: DEFAULT_AUTO_SUMMARY
     })
   })
 

@@ -3,6 +3,8 @@ import { Terminal } from '@xterm/xterm'
 import type { PrInfo, IssueInfo } from '../../../shared/types'
 import type { Project, Session, ActivityState } from '../types'
 import type { GridCols } from '../components/GridView'
+import type { AutoSummarySettings } from '../../../main/store'
+import { DEFAULT_AUTO_SUMMARY } from '../../../main/store'
 import { TERM_THEME } from '../termTheme'
 
 import '@xterm/xterm/css/xterm.css'
@@ -39,6 +41,7 @@ interface HmrState {
   sessionMeta: SessionMeta[]
   activeSessionId: string | null
   gridCols?: 1 | 2
+  autoSummary?: AutoSummarySettings
 }
 
 // Captured once at module load time. Consumed by the first mount of useSessions().
@@ -87,11 +90,20 @@ export function useSessions() {
     initialHmrState?.activeSessionId ?? null
   )
   const [gridCols, setGridCols] = useState<GridCols>(initialHmrState?.gridCols ?? 2)
+  const [autoSummary, setAutoSummary] = useState<AutoSummarySettings>(
+    initialHmrState?.autoSummary ?? DEFAULT_AUTO_SUMMARY
+  )
   // `ready` gates BOTH the save-to-disk effect and the PTY listener subscription.
   // It becomes true only after all async initialization (disk load OR HMR restore) completes.
   const [ready, setReady] = useState(false)
   const sessionsRef = useRef<Session[]>([])
   const projectsRef = useRef<Project[]>([])
+  const autoSummaryRef = useRef(autoSummary)
+
+  // Per-session tracking for debounced auto-summary
+  const turnCountsRef = useRef<Map<string, number>>(new Map())
+  const lastSummaryTimeRef = useRef<Map<string, number>>(new Map())
+  const summaryTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
 
   // Keep refs in sync
   useEffect(() => {
@@ -100,6 +112,9 @@ export function useSessions() {
   useEffect(() => {
     projectsRef.current = projects
   }, [projects])
+  useEffect(() => {
+    autoSummaryRef.current = autoSummary
+  }, [autoSummary])
 
   // ─── Cold start: load from disk ─────────────────────────────────────
   useEffect(() => {
@@ -117,6 +132,9 @@ export function useSessions() {
       }
       if (state.gridCols) {
         setGridCols(state.gridCols)
+      }
+      if (state.autoSummary) {
+        setAutoSummary(state.autoSummary)
       }
 
       // Create dormant session placeholders (lazy — no PTY spawned yet)
@@ -239,9 +257,10 @@ export function useSessions() {
         issue: s.issue
       })),
       activeSessionIndex: activeIdx >= 0 ? activeIdx : null,
-      gridCols
+      gridCols,
+      autoSummary
     })
-  }, [projects, activeProjectId, sessions, activeSessionId, gridCols, ready])
+  }, [projects, activeProjectId, sessions, activeSessionId, gridCols, autoSummary, ready])
 
   // ─── HMR: save state before module disposal (register once) ────────
   useEffect(() => {
@@ -254,7 +273,8 @@ export function useSessions() {
       activeProjectId: () => activeProjectId,
       activeSessionId: () => activeSessionId,
       sessions: () => sessionsRef.current,
-      gridCols: () => gridCols
+      gridCols: () => gridCols,
+      autoSummary: () => autoSummary
     }
 
     // Update the closures each render
@@ -279,7 +299,8 @@ export function useSessions() {
             issue: s.issue
           })),
           activeSessionId: r.activeSessionId(),
-          gridCols: r.gridCols()
+          gridCols: r.gridCols(),
+          autoSummary: r.autoSummary()
         } satisfies HmrState
 
         for (const s of r.sessions()) {
@@ -321,12 +342,59 @@ export function useSessions() {
           prev.map((s) => {
             if (s.claudeSessionId !== claudeSessionId) return s
             const updates: Partial<Session> = { activity: state }
-            // Only auto-set summary if the session doesn't already have one
-            // (preserves manual edits and avoids overwriting with later responses)
+            // Only auto-set summary from the hook's quick extract if the session
+            // doesn't already have one (preserves manual edits)
             if (summary && !s.summary) updates.summary = summary
             return { ...s, ...updates }
           })
         )
+
+        // ── Debounced AI auto-summary ──────────────────────────────────
+        // On Stop/Notification (state=waiting), schedule AI summary regeneration
+        // respecting both the turn count and time-based debounce thresholds.
+        if (state === 'waiting') {
+          const settings = autoSummaryRef.current
+          if (settings.enabled) {
+            const session = sessionsRef.current.find(
+              (s) => s.claudeSessionId === claudeSessionId
+            )
+            if (session) {
+              const turns = (turnCountsRef.current.get(claudeSessionId) ?? 0) + 1
+              turnCountsRef.current.set(claudeSessionId, turns)
+
+              if (turns >= settings.minTurns) {
+                // Clear any pending timer for this session
+                const existing = summaryTimersRef.current.get(claudeSessionId)
+                if (existing) clearTimeout(existing)
+
+                const lastTime = lastSummaryTimeRef.current.get(claudeSessionId) ?? 0
+                const elapsed = (Date.now() - lastTime) / 1000
+                const delay = Math.max(0, settings.debounceSeconds - elapsed) * 1000
+
+                const timer = setTimeout(() => {
+                  summaryTimersRef.current.delete(claudeSessionId)
+                  const current = sessionsRef.current.find(
+                    (s) => s.claudeSessionId === claudeSessionId
+                  )
+                  if (!current) return
+
+                  api.generateSummary(current.cwd, claudeSessionId).then((aiSummary) => {
+                    if (!aiSummary) return
+                    lastSummaryTimeRef.current.set(claudeSessionId, Date.now())
+                    turnCountsRef.current.set(claudeSessionId, 0)
+                    setSessions((prev) =>
+                      prev.map((s) =>
+                        s.claudeSessionId === claudeSessionId ? { ...s, summary: aiSummary } : s
+                      )
+                    )
+                  })
+                }, delay)
+
+                summaryTimersRef.current.set(claudeSessionId, timer)
+              }
+            }
+          }
+        }
 
         // Check for new PR when Claude finishes a turn (non-blocking)
         // Re-fetch if no PR or if the known PR is merged (branch may have a new PR)
@@ -406,6 +474,9 @@ export function useSessions() {
       unsubExit()
       unsubActivity()
       unsubRequest()
+      // Clean up any pending summary timers
+      for (const timer of summaryTimersRef.current.values()) clearTimeout(timer)
+      summaryTimersRef.current.clear()
     }
   }, [ready])
 
@@ -599,7 +670,9 @@ export function useSessions() {
     resizeSession,
     updateSessionSummary,
     gridCols,
-    setGridCols
+    setGridCols,
+    autoSummary,
+    setAutoSummary
   }
 }
 
@@ -612,6 +685,7 @@ interface HmrRefs {
   activeSessionId: () => string | null
   sessions: () => Session[]
   gridCols: () => 1 | 2
+  autoSummary: () => AutoSummarySettings
 }
 const refs = { current: null as null | HmrRefs }
 const disposeRegistered = { current: false }
