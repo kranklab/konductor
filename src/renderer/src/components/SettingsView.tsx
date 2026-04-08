@@ -222,8 +222,7 @@ export default function SettingsView({
                     value={autoSummary.minTurns}
                     onChange={(e) => {
                       const v = parseInt(e.target.value, 10)
-                      if (!isNaN(v) && v >= 1)
-                        onAutoSummaryChange({ ...autoSummary, minTurns: v })
+                      if (!isNaN(v) && v >= 1) onAutoSummaryChange({ ...autoSummary, minTurns: v })
                     }}
                     className="w-20 bg-surface border border-surface-border rounded px-2 py-1 text-sm text-gray-200 text-right focus:outline-none focus:border-gray-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />

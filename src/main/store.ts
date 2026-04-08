@@ -53,7 +53,8 @@ export async function loadState(): Promise<PersistedState> {
     const parsed = JSON.parse(raw) as Partial<PersistedState>
     const rawAuto = parsed.autoSummary
     const autoSummary: AutoSummarySettings = {
-      enabled: typeof rawAuto?.enabled === 'boolean' ? rawAuto.enabled : DEFAULT_AUTO_SUMMARY.enabled,
+      enabled:
+        typeof rawAuto?.enabled === 'boolean' ? rawAuto.enabled : DEFAULT_AUTO_SUMMARY.enabled,
       debounceSeconds:
         typeof rawAuto?.debounceSeconds === 'number' && rawAuto.debounceSeconds >= 0
           ? rawAuto.debounceSeconds

@@ -355,9 +355,7 @@ export function useSessions() {
         if (state === 'waiting') {
           const settings = autoSummaryRef.current
           if (settings.enabled) {
-            const session = sessionsRef.current.find(
-              (s) => s.claudeSessionId === claudeSessionId
-            )
+            const session = sessionsRef.current.find((s) => s.claudeSessionId === claudeSessionId)
             if (session) {
               const turns = (turnCountsRef.current.get(claudeSessionId) ?? 0) + 1
               turnCountsRef.current.set(claudeSessionId, turns)
