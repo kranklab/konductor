@@ -1,7 +1,8 @@
 import { readFile, writeFile, rename, mkdir } from 'fs/promises'
 import { join } from 'path'
 import { homedir } from 'os'
-import type { PrInfo, IssueInfo } from '../shared/types'
+import type { PrInfo, IssueInfo, AutoSummarySettings } from '../shared/types'
+import { DEFAULT_AUTO_SUMMARY } from '../shared/types'
 
 const STORE_DIR = join(homedir(), '.konductor')
 const STATE_FILE = join(STORE_DIR, 'state.json')
@@ -23,19 +24,8 @@ export interface SessionData {
   issue?: IssueInfo
 }
 
-export interface AutoSummarySettings {
-  enabled: boolean
-  /** Minimum seconds between AI summary regenerations per session */
-  debounceSeconds: number
-  /** Minimum Claude turns before first auto-summary (and between re-generations) */
-  minTurns: number
-}
-
-export const DEFAULT_AUTO_SUMMARY: AutoSummarySettings = {
-  enabled: true,
-  debounceSeconds: 30,
-  minTurns: 3
-}
+export type { AutoSummarySettings }
+export { DEFAULT_AUTO_SUMMARY }
 
 export interface PersistedState {
   projects: ProjectData[]

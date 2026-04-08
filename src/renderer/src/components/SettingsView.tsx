@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { ChevronLeftIcon, RefreshIcon } from './Icons'
 import type { UpdateStatus, LogEntry } from '../../../preload/index'
-import type { AutoSummarySettings } from '../../../main/store'
+import type { AutoSummarySettings } from '../../../shared/types'
 
 const api = window.konductorAPI
 
