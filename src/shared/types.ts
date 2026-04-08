@@ -1,5 +1,21 @@
 // Shared types used across main, preload, and renderer processes.
 
+// ─── Auto Summary ───────────────────────────────────────────────────
+
+export interface AutoSummarySettings {
+  enabled: boolean
+  /** Minimum seconds between AI summary regenerations per session */
+  debounceSeconds: number
+  /** Minimum Claude turns before first auto-summary (and between re-generations) */
+  minTurns: number
+}
+
+export const DEFAULT_AUTO_SUMMARY: AutoSummarySettings = {
+  enabled: true,
+  debounceSeconds: 30,
+  minTurns: 3
+}
+
 // ─── GitHub ──────────────────────────────────────────────────────────
 
 export interface GitHubRepo {

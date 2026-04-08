@@ -42,7 +42,9 @@ function App(): React.JSX.Element {
     resizeSession,
     updateSessionSummary,
     gridCols,
-    setGridCols
+    setGridCols,
+    autoSummary,
+    setAutoSummary
   } = useSessions()
 
   const {
@@ -376,7 +378,13 @@ function App(): React.JSX.Element {
           />
         )}
 
-        {effectiveViewMode === 'settings' && <SettingsView onBack={() => setViewMode('grid')} />}
+        {effectiveViewMode === 'settings' && (
+          <SettingsView
+            onBack={() => setViewMode('grid')}
+            autoSummary={autoSummary}
+            onAutoSummaryChange={setAutoSummary}
+          />
+        )}
       </main>
 
       {worktreeProject && (
