@@ -60,9 +60,7 @@ export default function PrDrawer({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const refresh = useCallback(() => {
-    setLoading(true)
-    setError(null)
+  const fetchPr = useCallback(() => {
     window.konductorAPI
       .getPrDetail(cwd, prNumber)
       .then((d) => {
@@ -82,8 +80,14 @@ export default function PrDrawer({
   }, [cwd, prNumber])
 
   useEffect(() => {
-    refresh()
-  }, [refresh])
+    fetchPr()
+  }, [fetchPr])
+
+  const refresh = useCallback(() => {
+    setLoading(true)
+    setError(null)
+    fetchPr()
+  }, [fetchPr])
 
   return (
     <div className="h-full flex flex-col bg-surface-raised">
