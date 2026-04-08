@@ -330,7 +330,7 @@ export function useSessions() {
 
         // Check for new PR when Claude finishes a turn (non-blocking)
         // Re-fetch if no PR or if the known PR is merged (branch may have a new PR)
-        if (state === 'ready') {
+        if (state === 'waiting') {
           const session = sessionsRef.current.find((s) => s.claudeSessionId === claudeSessionId)
           if (session && (!session.pr || session.pr.state === 'merged')) {
             api.getCurrentBranch(session.cwd).then((branch) => {
