@@ -40,9 +40,10 @@ import {
   fetchPrune,
   getBranchFiles,
   getBranchDiff,
-  getPrForBranch
+  getPrForBranch,
+  getCurrentBranch
 } from './worktree'
-import { getGitHubRepo, listPullRequests, listIssues } from './github'
+import { getGitHubRepo, listPullRequests, listIssues, getPrDetail, getCheckRunLogs } from './github'
 import {
   createTerminal,
   getTerminalScrollback,
@@ -328,6 +329,10 @@ function registerWorktreeHandlers(ipc: typeof ipcMain): void {
   ipc.handle('get-pr-for-branch', (_event, cwd: string, branch: string) => {
     return getPrForBranch(cwd, branch)
   })
+
+  ipc.handle('get-current-branch', (_event, cwd: string) => {
+    return getCurrentBranch(cwd)
+  })
 }
 
 function registerGitHubHandlers(ipc: typeof ipcMain): void {
@@ -341,6 +346,14 @@ function registerGitHubHandlers(ipc: typeof ipcMain): void {
 
   ipc.handle('list-issues', (_event, cwd: string, state: string) => {
     return listIssues(cwd, state as 'open' | 'closed' | 'all')
+  })
+
+  ipc.handle('get-pr-detail', (_event, cwd: string, prNumber: number) => {
+    return getPrDetail(cwd, prNumber)
+  })
+
+  ipc.handle('get-check-run-logs', (_event, cwd: string, detailsUrl: string) => {
+    return getCheckRunLogs(cwd, detailsUrl)
   })
 
   ipc.handle('open-external', (_event, url: string) => {

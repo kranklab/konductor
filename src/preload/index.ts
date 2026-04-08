@@ -3,7 +3,7 @@ import type { ChangedFile } from '../main/fileWatcher'
 import type { ActivityState } from '../main/activityWatcher'
 import type { SessionInfo } from '../main/sessionManager'
 import type { PersistedState } from '../main/store'
-import type { WorktreeInfo, BranchDetail, BranchFile, PrInfo } from '../shared/types'
+import type { WorktreeInfo, BranchDetail, BranchFile, PrInfo, PrDetail } from '../shared/types'
 import type { GitHubRepo, GitHubPR, GitHubIssue } from '../shared/types'
 
 export type UpdateStatus =
@@ -81,6 +81,9 @@ export interface KonductorAPI {
     worktreePath: string
   ) => Promise<string>
   getPrForBranch: (cwd: string, branch: string) => Promise<PrInfo>
+  getPrDetail: (cwd: string, prNumber: number) => Promise<PrDetail | null>
+  getCheckRunLogs: (cwd: string, detailsUrl: string) => Promise<string>
+  getCurrentBranch: (cwd: string) => Promise<string>
 
   // Shell terminals
   createTerminal: (sessionId: string, cwd: string, envScript?: string) => Promise<{ id: string }>
@@ -234,6 +237,11 @@ const api: KonductorAPI = {
   ) => ipcRenderer.invoke('get-branch-diff', cwd, branch, filePath, source, worktreePath),
   getPrForBranch: (cwd: string, branch: string) =>
     ipcRenderer.invoke('get-pr-for-branch', cwd, branch),
+  getPrDetail: (cwd: string, prNumber: number) =>
+    ipcRenderer.invoke('get-pr-detail', cwd, prNumber),
+  getCheckRunLogs: (cwd: string, detailsUrl: string) =>
+    ipcRenderer.invoke('get-check-run-logs', cwd, detailsUrl),
+  getCurrentBranch: (cwd: string) => ipcRenderer.invoke('get-current-branch', cwd),
 
   // Shell terminals
   createTerminal: (sessionId: string, cwd: string, envScript?: string) =>

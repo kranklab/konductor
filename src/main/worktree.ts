@@ -40,6 +40,10 @@ function ghSafe(args: string[], cwd: string): Promise<string> {
   })
 }
 
+export function getCurrentBranch(cwd: string): Promise<string> {
+  return git(['rev-parse', '--abbrev-ref', 'HEAD'], cwd).catch(() => '')
+}
+
 function getDefaultBranch(cwd: string): Promise<string> {
   return git(['symbolic-ref', 'refs/remotes/origin/HEAD'], cwd)
     .then((ref) => ref.replace('refs/remotes/origin/', ''))

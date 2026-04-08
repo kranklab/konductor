@@ -15,7 +15,8 @@ import {
   listBranches,
   getBranchFiles,
   batchGetPrStatuses,
-  getPrForBranch
+  getPrForBranch,
+  getCurrentBranch
 } from '../worktree'
 
 const mockedExecFile = vi.mocked(execFile)
@@ -412,5 +413,31 @@ describe('getPrForBranch', () => {
       expect.any(Object),
       expect.any(Function)
     )
+  })
+})
+
+// ─── getCurrentBranch ───────────────────────────────────────────────
+
+describe('getCurrentBranch', () => {
+  it('returns the current branch name', async () => {
+    mockExecFileOnce(null, 'feature-x\n')
+
+    const branch = await getCurrentBranch('/repo')
+
+    expect(branch).toBe('feature-x')
+    expect(mockedExecFile).toHaveBeenCalledWith(
+      'git',
+      ['rev-parse', '--abbrev-ref', 'HEAD'],
+      expect.any(Object),
+      expect.any(Function)
+    )
+  })
+
+  it('returns empty string on error', async () => {
+    mockExecFileOnce(new Error('not a git repo'), '')
+
+    const branch = await getCurrentBranch('/not-a-repo')
+
+    expect(branch).toBe('')
   })
 })

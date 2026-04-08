@@ -143,11 +143,15 @@ export function useSessions() {
         }
 
         // Enrich sessions with PR info (non-blocking)
+        // Re-fetch if no PR or if the known PR is merged (branch may have a new PR)
         for (const s of dormant) {
-          if (s.pr || /^Session \d+$/.test(s.title)) continue
-          api.getPrForBranch(s.cwd, s.title).then((pr) => {
-            if (cancelled || pr.state === 'none') return
-            setSessions((prev) => prev.map((x) => (x.id === s.id ? { ...x, pr } : x)))
+          if (s.pr && s.pr.state !== 'merged') continue
+          api.getCurrentBranch(s.cwd).then((branch) => {
+            if (cancelled || !branch) return
+            api.getPrForBranch(s.cwd, branch).then((pr) => {
+              if (cancelled || pr.state === 'none') return
+              setSessions((prev) => prev.map((x) => (x.id === s.id ? { ...x, pr } : x)))
+            })
           })
         }
       }
@@ -325,14 +329,18 @@ export function useSessions() {
         )
 
         // Check for new PR when Claude finishes a turn (non-blocking)
+        // Re-fetch if no PR or if the known PR is merged (branch may have a new PR)
         if (state === 'ready') {
           const session = sessionsRef.current.find((s) => s.claudeSessionId === claudeSessionId)
-          if (session && !session.pr && !/^Session \d+$/.test(session.title)) {
-            api.getPrForBranch(session.cwd, session.title).then((pr) => {
-              if (pr.state === 'none') return
-              setSessions((prev) =>
-                prev.map((s) => (s.claudeSessionId === claudeSessionId ? { ...s, pr } : s))
-              )
+          if (session && (!session.pr || session.pr.state === 'merged')) {
+            api.getCurrentBranch(session.cwd).then((branch) => {
+              if (!branch) return
+              api.getPrForBranch(session.cwd, branch).then((pr) => {
+                if (pr.state === 'none') return
+                setSessions((prev) =>
+                  prev.map((s) => (s.claudeSessionId === claudeSessionId ? { ...s, pr } : s))
+                )
+              })
             })
           }
         }
@@ -489,14 +497,16 @@ export function useSessions() {
       setActiveSessionId(id)
       setActiveProjectId(projectId)
 
-      // Look up PR for branch sessions (non-blocking)
-      if (branch) {
-        api.getPrForBranch(cwd, branch).then((pr) => {
+      // Look up PR for the session's branch (non-blocking)
+      const branchLookup = branch ? Promise.resolve(branch) : api.getCurrentBranch(cwd)
+      branchLookup.then((b) => {
+        if (!b) return
+        api.getPrForBranch(cwd, b).then((pr) => {
           if (pr.state !== 'none') {
             setSessions((prev) => prev.map((s) => (s.id === id ? { ...s, pr } : s)))
           }
         })
-      }
+      })
 
       return id
     },

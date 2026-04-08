@@ -4,6 +4,7 @@ import { useTerminalMount } from '../hooks/useTerminalMount'
 import { stripAnsi } from '../../../shared/stripAnsi'
 import TerminalPanel from './TerminalPanel'
 import ChangesPanel from './ChangesPanel'
+import PrDrawer from './PrDrawer'
 
 interface FocusViewProps {
   session: Session
@@ -40,6 +41,7 @@ export default function FocusView({
 }: FocusViewProps): React.JSX.Element {
   const [terminalCollapsed, setTerminalCollapsed] = useState(false)
   const [showChanges, setShowChanges] = useState(false)
+  const [showPrDrawer, setShowPrDrawer] = useState(false)
   const [editingSummary, setEditingSummary] = useState(false)
   const [summaryDraft, setSummaryDraft] = useState('')
   const summaryInputRef = useRef<HTMLTextAreaElement>(null)
@@ -92,21 +94,6 @@ export default function FocusView({
                 title={`Issue #${session.issue.number}`}
               >
                 Issue #{session.issue.number}
-              </button>
-            )}
-            {session.pr && session.pr.state !== 'none' && (
-              <button
-                onClick={() => window.konductorAPI.openExternal(session.pr!.url)}
-                className={`text-xs shrink-0 hover:underline ${
-                  session.pr.state === 'merged'
-                    ? 'text-purple-400'
-                    : session.pr.state === 'closed'
-                      ? 'text-red-400'
-                      : 'text-green-400'
-                }`}
-                title={`PR #${session.pr.number} (${session.pr.state})`}
-              >
-                PR #{session.pr.number}
               </button>
             )}
             <span className="text-xs text-gray-500">{session.cwd}</span>
@@ -198,6 +185,23 @@ export default function FocusView({
               Changes
             </button>
           )}
+          {session.pr && session.pr.state !== 'none' && (
+            <button
+              onClick={() => setShowPrDrawer((v) => !v)}
+              className={`text-xs px-2 py-1 rounded border transition-colors ${
+                showPrDrawer
+                  ? 'text-white border-accent/50 bg-accent/10'
+                  : session.pr.state === 'merged'
+                    ? 'text-purple-400 border-purple-400/50 hover:bg-purple-400/10'
+                    : session.pr.state === 'closed'
+                      ? 'text-red-400 border-red-400/50 hover:bg-red-400/10'
+                      : 'text-green-400 border-green-400/50 hover:bg-green-400/10'
+              }`}
+              title={`PR #${session.pr.number} (${session.pr.state})`}
+            >
+              PR #{session.pr.number}
+            </button>
+          )}
           <button
             onClick={onClose}
             className="text-xs text-gray-500 hover:text-red-400 px-2 py-1 transition-colors"
@@ -271,6 +275,22 @@ export default function FocusView({
                 />
               </div>
             )}
+          </>
+        )}
+
+        {/* PR drawer (right side) */}
+        {showPrDrawer && session.pr && session.pr.state !== 'none' && (
+          <>
+            <div className="w-px bg-surface-border shrink-0" />
+            <div className="w-[350px] min-w-[280px] max-w-[450px] shrink-0">
+              <PrDrawer
+                cwd={session.cwd}
+                prNumber={session.pr.number}
+                sessionId={session.id}
+                onClose={() => setShowPrDrawer(false)}
+                onOpenExternal={(url) => window.konductorAPI.openExternal(url)}
+              />
+            </div>
           </>
         )}
       </div>
