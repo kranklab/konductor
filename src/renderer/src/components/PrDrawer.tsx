@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import type { PrDetail, PrCheckRun } from '../../../shared/types'
@@ -60,13 +60,12 @@ export default function PrDrawer({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    let cancelled = false
-    // Reset handled via initial state; subsequent fetches reset in callbacks
+  const refresh = useCallback(() => {
+    setLoading(true)
+    setError(null)
     window.konductorAPI
       .getPrDetail(cwd, prNumber)
       .then((d) => {
-        if (cancelled) return
         if (d) {
           setDetail(d)
           setError(null)
@@ -75,15 +74,16 @@ export default function PrDrawer({
         }
       })
       .catch(() => {
-        if (!cancelled) setError('Failed to load PR details')
+        setError('Failed to load PR details')
       })
       .finally(() => {
-        if (!cancelled) setLoading(false)
+        setLoading(false)
       })
-    return () => {
-      cancelled = true
-    }
   }, [cwd, prNumber])
+
+  useEffect(() => {
+    refresh()
+  }, [refresh])
 
   return (
     <div className="h-full flex flex-col bg-surface-raised">
@@ -96,6 +96,13 @@ export default function PrDrawer({
           {detail && <span className="text-xs text-gray-400 truncate">{detail.title}</span>}
         </div>
         <div className="flex items-center gap-1 shrink-0">
+          <button
+            onClick={refresh}
+            className="text-xs text-gray-500 hover:text-white px-1.5 py-0.5 transition-colors"
+            title="Refresh"
+          >
+            &#8635;
+          </button>
           <button
             onClick={() => onOpenExternal(detail?.url ?? '')}
             className="text-xs text-gray-500 hover:text-white px-1.5 py-0.5 transition-colors"
