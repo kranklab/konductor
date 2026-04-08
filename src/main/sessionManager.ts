@@ -134,6 +134,7 @@ function spawnClaude(
   name: string,
   resume: boolean,
   prompt?: string,
+  systemPrompt?: string,
   env?: Record<string, string>
 ): nodePty.IPty {
   const args = resume
@@ -146,8 +147,13 @@ function spawnClaude(
     args.push('--plugin-dir', DEV_PLUGIN_PATH)
   }
 
+  if (systemPrompt && !resume) {
+    args.push('--append-system-prompt', systemPrompt)
+  }
+
+  // prompt is a positional argument — must come last, after all flags
   if (prompt && !resume) {
-    args.push('--prompt', prompt)
+    args.push(prompt)
   }
 
   log.info('session', `spawn: ${getClaudePath()} ${args.join(' ')}  cwd=${cwd}`)
@@ -169,6 +175,7 @@ export function createSession(
     name?: string
     resume?: boolean
     prompt?: string
+    systemPrompt?: string
     envScript?: string
   }
 ): { id: string; claudeSessionId: string } {
@@ -184,7 +191,7 @@ export function createSession(
     `createSession id=${id} claude=${claudeSessionId} resume=${resume} cwd=${cwd}`
   )
 
-  const pty = spawnClaude(cwd, claudeSessionId, name, resume, opts?.prompt, env)
+  const pty = spawnClaude(cwd, claudeSessionId, name, resume, opts?.prompt, opts?.systemPrompt, env)
 
   const entry: SessionEntry = {
     pty,

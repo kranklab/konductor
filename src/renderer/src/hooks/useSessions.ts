@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Terminal } from '@xterm/xterm'
-import type { PrInfo } from '../../../shared/types'
+import type { PrInfo, IssueInfo } from '../../../shared/types'
 import type { Project, Session, ActivityState } from '../types'
 import type { GridCols } from '../components/GridView'
 import { TERM_THEME } from '../termTheme'
@@ -30,6 +30,7 @@ interface SessionMeta {
   summary: string
   claudeSessionId: string
   pr?: PrInfo
+  issue?: IssueInfo
 }
 
 interface HmrState {
@@ -131,7 +132,8 @@ export function useSessions() {
           claudeSessionId: meta.claudeSessionId,
           activity: 'ready',
           dormant: true,
-          pr: meta.pr
+          pr: meta.pr,
+          issue: meta.issue
         }))
         setSessions(dormant)
         if (state.activeSessionIndex != null && state.activeSessionIndex < dormant.length) {
@@ -196,7 +198,8 @@ export function useSessions() {
           claudeSessionId: meta.claudeSessionId,
           activity: 'ready',
           dormant: false,
-          pr: meta.pr
+          pr: meta.pr,
+          issue: meta.issue
         })
       }
 
@@ -228,7 +231,8 @@ export function useSessions() {
         title: s.title,
         summary: s.summary,
         claudeSessionId: s.claudeSessionId,
-        pr: s.pr
+        pr: s.pr,
+        issue: s.issue
       })),
       activeSessionIndex: activeIdx >= 0 ? activeIdx : null,
       gridCols
@@ -267,7 +271,8 @@ export function useSessions() {
             title: s.title,
             summary: s.summary,
             claudeSessionId: s.claudeSessionId,
-            pr: s.pr
+            pr: s.pr,
+            issue: s.issue
           })),
           activeSessionId: r.activeSessionId(),
           gridCols: r.gridCols()
@@ -442,7 +447,14 @@ export function useSessions() {
   }, [])
 
   const createSession = useCallback(
-    async (projectId: string, cwd: string, branch?: string, prompt?: string) => {
+    async (
+      projectId: string,
+      cwd: string,
+      branch?: string,
+      prompt?: string,
+      systemPrompt?: string,
+      issue?: IssueInfo
+    ) => {
       const sessionCount = sessionsRef.current.filter((s) => s.projectId === projectId).length
       const title = branch ? `${branch}` : `Session ${sessionCount + 1}`
       const project = projects.find((p) => p.id === projectId)
@@ -450,6 +462,7 @@ export function useSessions() {
       const { id, claudeSessionId } = await api.createSession(cwd, {
         name: title,
         prompt,
+        systemPrompt,
         envScript: project?.envScript
       })
 
@@ -468,7 +481,8 @@ export function useSessions() {
         alive: true,
         claudeSessionId,
         activity: 'ready',
-        dormant: false
+        dormant: false,
+        issue
       }
 
       setSessions((prev) => [...prev, session])

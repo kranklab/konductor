@@ -23,6 +23,7 @@ export interface GitHubPR {
 export interface GitHubIssue {
   number: number
   title: string
+  body: string
   state: 'open' | 'closed'
   author: string
   labels: string[]
@@ -44,6 +45,11 @@ export type PrState = 'open' | 'merged' | 'closed' | 'none'
 
 export interface PrInfo {
   state: PrState
+  number: number
+  url: string
+}
+
+export interface IssueInfo {
   number: number
   url: string
 }

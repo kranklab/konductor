@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import type { ViewMode, Session } from './types'
+import type { IssueInfo } from '../../shared/types'
 import { useSessions } from './hooks/useSessions'
 import { useTerminals } from './hooks/useTerminals'
 import { useFileChanges } from './hooks/useFileChanges'
@@ -82,7 +83,13 @@ function App(): React.JSX.Element {
   }, [])
 
   const handleOpenBranchSession = useCallback(
-    async (branch: string, isNew: boolean, prompt?: string) => {
+    async (
+      branch: string,
+      isNew: boolean,
+      prompt?: string,
+      systemPrompt?: string,
+      issue?: IssueInfo
+    ) => {
       if (!activeProject || !activeProjectId) return
 
       // 1. Check if a session already exists on this branch (by matching title)
@@ -100,7 +107,7 @@ function App(): React.JSX.Element {
         const worktrees = await window.konductorAPI.listWorktrees(activeProject.cwd)
         const wt = worktrees.find((w) => w.branch === branch)
         if (wt) {
-          await createSession(activeProjectId, wt.path, branch, prompt)
+          await createSession(activeProjectId, wt.path, branch, prompt, systemPrompt, issue)
           setViewMode('focus')
           return
         }
@@ -111,7 +118,7 @@ function App(): React.JSX.Element {
       // 3. Create a new worktree and session
       try {
         const wt = await window.konductorAPI.createWorktree(activeProject.cwd, branch, isNew)
-        await createSession(activeProjectId, wt.path, branch, prompt)
+        await createSession(activeProjectId, wt.path, branch, prompt, systemPrompt, issue)
         setViewMode('focus')
       } catch (e) {
         console.error('Failed to create worktree session:', e)

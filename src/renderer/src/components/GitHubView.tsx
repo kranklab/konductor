@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { Project } from '../types'
-import type { GitHubPR, GitHubIssue } from '../../../shared/types'
+import type { GitHubPR, GitHubIssue, IssueInfo } from '../../../shared/types'
 import { ChevronLeftIcon, RefreshIcon } from './Icons'
 
 const api = window.konductorAPI
@@ -12,7 +12,13 @@ type IssueFilter = 'open' | 'closed' | 'all'
 interface GitHubViewProps {
   project: Project
   onBack: () => void
-  onOpenSession: (branch: string, isNew: boolean, prompt?: string) => void
+  onOpenSession: (
+    branch: string,
+    isNew: boolean,
+    prompt?: string,
+    systemPrompt?: string,
+    issue?: IssueInfo
+  ) => void
 }
 
 function relativeTime(iso: string): string {
@@ -313,7 +319,13 @@ function PRRow({
 }: {
   pr: GitHubPR
   onOpen: (url: string) => void
-  onOpenSession: (branch: string, isNew: boolean, prompt?: string) => void
+  onOpenSession: (
+    branch: string,
+    isNew: boolean,
+    prompt?: string,
+    systemPrompt?: string,
+    issue?: IssueInfo
+  ) => void
 }): React.JSX.Element {
   const stateColor =
     pr.state === 'open'
@@ -407,7 +419,13 @@ function IssueRow({
 }: {
   issue: GitHubIssue
   onOpen: (url: string) => void
-  onOpenSession: (branch: string, isNew: boolean, prompt?: string) => void
+  onOpenSession: (
+    branch: string,
+    isNew: boolean,
+    prompt?: string,
+    systemPrompt?: string,
+    issue?: IssueInfo
+  ) => void
 }): React.JSX.Element {
   const stateColor = issue.state === 'open' ? 'text-green-400' : 'text-red-400'
 
@@ -462,9 +480,16 @@ function IssueRow({
               .replace(/^-|-$/g, '')
               .slice(0, 30)
             const branch = `issue-${issue.number}-${slug}`
-            const labels = issue.labels.length > 0 ? ` Labels: ${issue.labels.join(', ')}.` : ''
-            const prompt = `You are working on Issue #${issue.number}: "${issue.title}" (by @${issue.author}).${labels} Help me implement a solution for this issue.`
-            onOpenSession(branch, true, prompt)
+            const labels = issue.labels.length > 0 ? `\nLabels: ${issue.labels.join(', ')}` : ''
+            const assignees =
+              issue.assignees.length > 0 ? `\nAssignees: ${issue.assignees.join(', ')}` : ''
+            const body = issue.body ? `\n\n${issue.body}` : ''
+            const systemPrompt = `# issue\nIssue #${issue.number}: ${issue.title}\nAuthor: @${issue.author}\nState: ${issue.state}\nURL: ${issue.url}${labels}${assignees}${body}`
+            const prompt = `Help me implement a solution for issue #${issue.number}.`
+            onOpenSession(branch, true, prompt, systemPrompt, {
+              number: issue.number,
+              url: issue.url
+            })
           }}
           className="text-[10px] px-2 py-1 rounded bg-accent/10 text-accent border border-accent/20 hover:bg-accent/20 transition-colors"
           title={`Create branch and open session for #${issue.number}`}

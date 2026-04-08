@@ -29,6 +29,7 @@ export interface KonductorAPI {
       name?: string
       resume?: boolean
       prompt?: string
+      systemPrompt?: string
       envScript?: string
     }
   ) => Promise<{ id: string; claudeSessionId: string }>
@@ -103,6 +104,7 @@ const api: KonductorAPI = {
       name?: string
       resume?: boolean
       prompt?: string
+      systemPrompt?: string
       envScript?: string
     }
   ) => ipcRenderer.invoke('create-session', cwd, opts),

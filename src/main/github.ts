@@ -91,7 +91,7 @@ export async function listIssues(
   if (!ghRepo) return []
 
   const nwo = `${ghRepo.owner}/${ghRepo.repo}`
-  const fields = 'number,title,state,author,labels,assignees,url,createdAt,updatedAt'
+  const fields = 'number,title,body,state,author,labels,assignees,url,createdAt,updatedAt'
 
   return new Promise((resolve, reject) => {
     execFile(
@@ -110,6 +110,7 @@ export async function listIssues(
             (issue: {
               number: number
               title: string
+              body: string
               state: string
               author: { login: string }
               labels: { name: string }[]
@@ -120,6 +121,7 @@ export async function listIssues(
             }) => ({
               number: issue.number,
               title: issue.title,
+              body: issue.body ?? '',
               state: issue.state === 'CLOSED' ? 'closed' : 'open',
               author: issue.author?.login ?? '',
               labels: (issue.labels ?? []).map((l) => l.name),
