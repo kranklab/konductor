@@ -1,7 +1,7 @@
 import { readFile, writeFile, rename, mkdir } from 'fs/promises'
 import { join } from 'path'
 import { homedir } from 'os'
-import type { PrInfo } from '../shared/types'
+import type { PrInfo, IssueInfo } from '../shared/types'
 
 const STORE_DIR = join(homedir(), '.konductor')
 const STATE_FILE = join(STORE_DIR, 'state.json')
@@ -20,6 +20,7 @@ export interface SessionData {
   summary: string
   claudeSessionId: string
   pr?: PrInfo
+  issue?: IssueInfo
 }
 
 export interface PersistedState {

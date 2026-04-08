@@ -1,5 +1,5 @@
 import type { Terminal } from '@xterm/xterm'
-import type { PrInfo } from '../../shared/types'
+import type { PrInfo, IssueInfo } from '../../shared/types'
 
 export type ViewMode = 'grid' | 'focus' | 'branches' | 'github' | 'settings'
 
@@ -26,6 +26,8 @@ export interface Session {
   dormant: boolean
   /** PR associated with the session's branch (if any) */
   pr?: PrInfo
+  /** GitHub issue this session was created from (if any) */
+  issue?: IssueInfo
 }
 
 export interface ShellTerminal {

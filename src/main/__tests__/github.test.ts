@@ -182,6 +182,7 @@ describe('listIssues', () => {
         {
           number: 10,
           title: 'Bug report',
+          body: 'Something is broken',
           state: 'OPEN',
           author: { login: 'alice' },
           labels: [{ name: 'bug' }, { name: 'critical' }],
@@ -193,6 +194,7 @@ describe('listIssues', () => {
         {
           number: 11,
           title: 'Done issue',
+          body: '',
           state: 'CLOSED',
           author: { login: 'charlie' },
           labels: [],
@@ -208,9 +210,11 @@ describe('listIssues', () => {
 
     expect(issues).toHaveLength(2)
     expect(issues[0].state).toBe('open')
+    expect(issues[0].body).toBe('Something is broken')
     expect(issues[0].labels).toEqual(['bug', 'critical'])
     expect(issues[0].assignees).toEqual(['bob'])
     expect(issues[1].state).toBe('closed')
+    expect(issues[1].body).toBe('')
     expect(issues[1].assignees).toEqual([])
   })
 

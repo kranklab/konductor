@@ -252,7 +252,21 @@ export default function Sidebar({
                           </svg>
                         )}
                         <div className="min-w-0">
-                          <span className="text-xs truncate block">{session.title}</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs truncate">{session.title}</span>
+                            {session.issue && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  window.konductorAPI.openExternal(session.issue!.url)
+                                }}
+                                className="text-[9px] shrink-0 hover:underline text-blue-400"
+                                title={`Issue #${session.issue.number}`}
+                              >
+                                #{session.issue.number}
+                              </button>
+                            )}
+                          </div>
                           {isWorktree && (
                             <span className="text-[9px] text-gray-600 truncate block">
                               {session.cwd.split('/').slice(-3).join('/')}

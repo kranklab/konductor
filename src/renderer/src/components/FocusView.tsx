@@ -85,6 +85,15 @@ export default function FocusView({
             <span className="text-sm text-gray-500">{projectName}</span>
             <span className="text-sm text-gray-500">/</span>
             <span className="text-sm text-gray-300">{session.title}</span>
+            {session.issue && (
+              <button
+                onClick={() => window.konductorAPI.openExternal(session.issue!.url)}
+                className="text-xs shrink-0 hover:underline text-blue-400"
+                title={`Issue #${session.issue.number}`}
+              >
+                Issue #{session.issue.number}
+              </button>
+            )}
             {session.pr && session.pr.state !== 'none' && (
               <button
                 onClick={() => window.konductorAPI.openExternal(session.pr!.url)}
