@@ -54,6 +54,41 @@ export interface IssueInfo {
   url: string
 }
 
+// ─── PR Detail ─────────────────────────────────────────────────────
+
+export interface PrComment {
+  author: string
+  body: string
+  createdAt: string
+  path?: string // file path for review comments
+  line?: number // line number for review comments
+}
+
+export interface PrCheckRun {
+  name: string
+  status: string // 'completed' | 'in_progress' | 'queued' etc.
+  conclusion: string // 'success' | 'failure' | 'neutral' | 'skipped' | ''
+  url: string
+}
+
+export interface PrDetail {
+  number: number
+  title: string
+  state: PrState
+  author: string
+  body: string
+  branch: string
+  baseBranch: string
+  additions: number
+  deletions: number
+  commits: number
+  labels: string[]
+  url: string
+  createdAt: string
+  updatedAt: string
+  comments: PrComment[]
+  checks: PrCheckRun[]
+}
 export interface BranchDetail {
   name: string
   isHead: boolean

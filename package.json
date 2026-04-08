@@ -30,7 +30,9 @@
     "chokidar": "^4.0.3",
     "electron-updater": "^6.8.3",
     "highlight.js": "^11.11.1",
-    "node-pty": "^1.0.0"
+    "node-pty": "^1.0.0",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config-prettier": "^3.0.0",
