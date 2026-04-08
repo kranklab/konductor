@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import type { Session, ShellTerminal, ChangedFile } from '../types'
 import { useTerminalMount } from '../hooks/useTerminalMount'
 import { stripAnsi } from '../../../shared/stripAnsi'
@@ -42,6 +42,9 @@ export default function FocusView({
   const [terminalCollapsed, setTerminalCollapsed] = useState(false)
   const [showChanges, setShowChanges] = useState(false)
   const [showPrDrawer, setShowPrDrawer] = useState(false)
+  const [prDrawerWidth, setPrDrawerWidth] = useState(350)
+  const [prDragging, setPrDragging] = useState(false)
+  const prDragRef = useRef<{ startX: number; startW: number } | null>(null)
   const [editingSummary, setEditingSummary] = useState(false)
   const [summaryDraft, setSummaryDraft] = useState('')
   const summaryInputRef = useRef<HTMLTextAreaElement>(null)
@@ -60,8 +63,38 @@ export default function FocusView({
     [session.id]
   )
 
+  const handlePrDragStart = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault()
+      prDragRef.current = { startX: e.clientX, startW: prDrawerWidth }
+      setPrDragging(true)
+    },
+    [prDrawerWidth]
+  )
+
+  useEffect(() => {
+    const onMouseMove = (e: MouseEvent): void => {
+      if (!prDragRef.current) return
+      const delta = prDragRef.current.startX - e.clientX
+      const newWidth = Math.min(800, Math.max(250, prDragRef.current.startW + delta))
+      setPrDrawerWidth(newWidth)
+    }
+    const onMouseUp = (): void => {
+      if (prDragRef.current) {
+        prDragRef.current = null
+        setPrDragging(false)
+      }
+    }
+    document.addEventListener('mousemove', onMouseMove)
+    document.addEventListener('mouseup', onMouseUp)
+    return () => {
+      document.removeEventListener('mousemove', onMouseMove)
+      document.removeEventListener('mouseup', onMouseUp)
+    }
+  }, [])
+
   return (
-    <div className="h-full flex flex-col">
+    <div className={`h-full flex flex-col ${prDragging ? 'select-none cursor-col-resize' : ''}`}>
       {/* Toolbar */}
       <div className="flex items-center justify-between px-4 py-2 bg-surface-overlay border-b border-surface-border shrink-0">
         <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -281,8 +314,12 @@ export default function FocusView({
         {/* PR drawer (right side) */}
         {showPrDrawer && session.pr && session.pr.state !== 'none' && (
           <>
-            <div className="w-px bg-surface-border shrink-0" />
-            <div className="w-[350px] min-w-[280px] max-w-[450px] shrink-0">
+            {/* Resize handle */}
+            <div
+              onMouseDown={handlePrDragStart}
+              className="w-1.5 shrink-0 cursor-col-resize bg-surface-border hover:bg-accent/40 active:bg-accent/60 transition-colors"
+            />
+            <div className="shrink-0" style={{ width: prDrawerWidth }}>
               <PrDrawer
                 cwd={session.cwd}
                 prNumber={session.pr.number}
