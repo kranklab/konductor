@@ -63,11 +63,14 @@ export default function FocusView({
     [session.id]
   )
 
-  const handlePrDragStart = useCallback((e: React.MouseEvent) => {
-    e.preventDefault()
-    prDragRef.current = { startX: e.clientX, startW: prDrawerWidth }
-    setPrDragging(true)
-  }, [prDrawerWidth])
+  const handlePrDragStart = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault()
+      prDragRef.current = { startX: e.clientX, startW: prDrawerWidth }
+      setPrDragging(true)
+    },
+    [prDrawerWidth]
+  )
 
   useEffect(() => {
     const onMouseMove = (e: MouseEvent): void => {
